@@ -1,4 +1,5 @@
 import json
+import re
 
 users = {}
 filename = "users.json"
@@ -79,3 +80,21 @@ def show_friends_list(user):
         return "You have no friends :("
     return "\n".join(map(str, users[user]["data"]["friends"]))
 
+def add_cookie(user, cookie):
+    users[user]["session_cookie"] = cookie
+    store_data()
+    return "Session cookie saved"
+
+def add_username(user, username):
+    pattern = r'^up\d{9}(@up.pt)?(@fe.up.pt)?$'
+    if re.match(pattern, username):
+        users[user]["username"] = username
+        store_data()
+        return "Username saved"
+    else:
+        return "Wrong username format, available formats: \nupXXXXXXXXX \nupXXXXXXXXX@up.pt \nupXXXXXXXXX@fe.up.pt"
+
+def add_password(user, password):
+    users[user]["password"] = password
+    store_data()
+    return "Password saved"
