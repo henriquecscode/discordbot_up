@@ -1,6 +1,7 @@
 import json
 import re
 from events.interaction import Interaction
+from database.dbs.schema import *
 
 users = {}
 user_interactions = {}
@@ -41,7 +42,7 @@ def create_user_interaction(user):
         "current_interaction": None,
         "current_interaction_data": None
     }
-    
+
 def account_checker(user):
     if user not in users:
         create_user(user)
@@ -111,18 +112,22 @@ def add_password(user, password):
     store_data()
     return "Password saved"
 
-def add_current_faculty(user, faculty):
-    for faculty in users[user]["faculties"]:
-        if faculty["name"] == faculty:
+def add_faculty(user, faculty: Faculty):
+    for user_faculty in users[user]["faculties"]:
+        if user_faculty["name"] == faculty.acronym:
             return False
     
     faculty_data = {
-    "name": faculty,
-    "courses": []
+        "name": faculty.acronym,
+        "full_name": faculty.name,
+        "courses": []
     }
     users[user]["faculties"].append(faculty_data)
     store_data()
     return True
+
+def get_faculties(user) -> List[dict]:
+    return users[user]["faculties"]
 
 def has_current_interaction(user):
     return bool(user_interactions[user]['current_interaction'])
@@ -134,6 +139,14 @@ def add_current_schedule_interaction(user):
 def add_choose_faculty_to_add_schedule_interaction(user, faculties):
     user_interactions[user]['current_interaction'] = Interaction.CHOOSE_FACULTY_TO_ADD
     user_interactions[user]['current_interaction_data'] = faculties
+
+def add_choose_faculty_to_edit_schedule_interaction(user, faculties):
+    user_interactions[user]['current_interaction'] = Interaction.CHOOSE_FACULTY_TO_EDIT
+    user_interactions[user]['current_interaction_data'] = faculties
+
+def add_current_schedule_faculty_interaction(user, faculty):
+    user_interactions[user]['current_interaction'] = Interaction.ADD_SCHEDULE_FACULTY
+    user_interactions[user]['current_interaction_data'] = faculty
 
 def get_current_interaction(user):
     return user_interactions[user]['current_interaction']
