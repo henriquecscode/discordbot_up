@@ -1,10 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()
 import discord
 import os
 import user
-from dotenv import load_dotenv
 from client import client
 
-load_dotenv()
 
 user.setup_data()
 

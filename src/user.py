@@ -1,7 +1,9 @@
 import json
 import re
+from events.interaction import Interaction
 
 users = {}
+user_interactions = {}
 filename = "users.json"
 
 def setup_data():
@@ -9,13 +11,16 @@ def setup_data():
     with open(filename, "r") as json_file:
         users = json.load(json_file)
 
+    for user in users:
+        create_user_interaction(user)
+
 def store_data():
     with open(filename, "w") as json_file:
         json.dump(users, json_file, indent=4)
 
 def create_user(user):
     new_user = {
-        "faculdade": None,
+        "faculties": [],
         "session_cookie": None,
         "username": None,
         "password": None,
@@ -25,11 +30,18 @@ def create_user(user):
             "friends": [],
             "events": [],
             "ucs": []
-        }
+        },
     }
     users[user] = new_user
+    create_user_interaction(user)
     store_data()
 
+def create_user_interaction(user):
+    user_interactions[user] = {
+        "current_interaction": None,
+        "current_interaction_data": None
+    }
+    
 def account_checker(user):
     if user not in users:
         create_user(user)
@@ -98,3 +110,37 @@ def add_password(user, password):
     users[user]["password"] = password
     store_data()
     return "Password saved"
+
+def add_current_faculty(user, faculty):
+    for faculty in users[user]["faculties"]:
+        if faculty["name"] == faculty:
+            return False
+    
+    faculty_data = {
+    "name": faculty,
+    "courses": []
+    }
+    users[user]["faculties"].append(faculty_data)
+    store_data()
+    return True
+
+def has_current_interaction(user):
+    return bool(user_interactions[user]['current_interaction'])
+
+def add_current_schedule_interaction(user):
+    user_interactions[user]['current_interaction'] = Interaction.ADD_SCHEDULE
+    user_interactions[user]['current_interaction_data'] = None
+
+def add_choose_faculty_to_add_schedule_interaction(user, faculties):
+    user_interactions[user]['current_interaction'] = Interaction.CHOOSE_FACULTY_TO_ADD
+    user_interactions[user]['current_interaction_data'] = faculties
+
+def get_current_interaction(user):
+    return user_interactions[user]['current_interaction']
+
+def get_current_interaction_data(user):
+    return user_interactions[user]['current_interaction_data']
+
+def cancel_current_interaction(user):
+    user_interactions[user]['current_interaction'] = None
+    user_interactions[user]['current_interaction_data'] = None
