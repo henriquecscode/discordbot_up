@@ -1,5 +1,6 @@
 import json
 import re
+import os
 from events.interaction import Interaction
 from database.dbs.schema import *
 
@@ -9,8 +10,11 @@ filename = "users.json"
 
 def setup_data():
     global users
-    with open(filename, "r") as json_file:
-        users = json.load(json_file)
+    if not os.path.exists(filename):
+        users = {}
+    else:
+        with open(filename, "r") as json_file:
+            users = json.load(json_file)
 
     for user in users:
         create_user_interaction(user)
