@@ -15,3 +15,10 @@ From root folder do
 `python -m pip install -e .`
 Will install the project as `src` so that relative paths can be used
 Watch out if you have any other `src` dependencies you might have used for other projects.
+
+## .env
+```
+TOKEN=<discord token provided by discord.com>
+USER=<personal sigarra up>
+PASSWORD<person siggara pwd>
+DB_PATH=<path to the schedules database>
