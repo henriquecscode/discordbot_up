@@ -133,6 +133,22 @@ def add_faculty(user, faculty: Faculty):
 def get_faculties(user) -> List[dict]:
     return users[user]["faculties"]
 
+def add_course(user, faculty: dict, course: Course):
+    for user_faculty in users[user]["faculties"]:
+        if user_faculty["name"] == faculty['name']:
+            for user_course in user_faculty["courses"]:
+                if user_course["name"] == course.name:
+                    return False
+            course_data = {
+                "name": course.acronym,
+                "full_name": course.name,
+                "course_units": []
+            }
+            user_faculty["courses"].append(course_data)
+            store_data()
+            return True
+    return False
+
 def has_current_interaction(user):
     return bool(user_interactions[user]['current_interaction'])
 
@@ -148,9 +164,16 @@ def add_choose_faculty_to_edit_schedule_interaction(user, faculties):
     user_interactions[user]['current_interaction'] = Interaction.CHOOSE_FACULTY_TO_EDIT
     user_interactions[user]['current_interaction_data'] = faculties
 
-def add_current_schedule_faculty_interaction(user, faculty):
-    user_interactions[user]['current_interaction'] = Interaction.ADD_SCHEDULE_FACULTY
+def add_current_faculty_course_interaction(user, faculty):
+    user_interactions[user]['current_interaction'] = Interaction.MANAGE_FACULTY
     user_interactions[user]['current_interaction_data'] = faculty
+
+def add_course_interaction(user, faculty: dict, courses: List[Course]):
+    user_interactions[user]['current_interaction'] = Interaction.ADD_COURSE
+    user_interactions[user]['current_interaction_data'] = {
+        "faculty": faculty,
+        "courses": courses
+    }
 
 def get_current_interaction(user):
     return user_interactions[user]['current_interaction']

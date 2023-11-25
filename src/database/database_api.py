@@ -27,6 +27,11 @@ class Database_API:
     def _get_faculty_courses(self, faculty_id):
         return self.db.get_join_all_by_param('course', 'faculty', 'faculty_id', 'acronym', Param(f"faculty.{FACULTY_ID}", faculty_id)) #TODO Check
     
+    def get_faculty_courses(self, faculty_id) -> List[Course]:
+        courses = self._get_faculty_courses(faculty_id)
+        course_objects = [Course(course) for course in courses]
+        return course_objects
+    
     def _get_course_course_units_year(self, course_id):
         return self.db.get_join_all_by_param('course', 'course_metadata', 'id', 'course_id', Param(f"course.{COURSE_ID}", course_id))
     

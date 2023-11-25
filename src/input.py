@@ -81,6 +81,12 @@ def process_input(message, public):
 
         elif interaction == Interaction.CHOOSE_FACULTY_TO_EDIT:
             return process_choose_faculty_to_edit(message, public, command)
+        
+        elif interaction == Interaction.MANAGE_FACULTY:
+            return process_manage_faculty_courses(message, public, command)
+        
+        elif interaction == Interaction.ADD_COURSE:
+            return process_add_course(message, public, command)
 
     return ["Unknown command", False]
 
@@ -116,24 +122,20 @@ def process_choose_faculty_to_add(message, public, command):
         return ["Option not recognized", False]
     
     faculties = user.get_current_interaction_data(message.author.name)
-    if option_chosen < 0 or option_chosen > len(faculties):
+    if option_chosen <= 0 or option_chosen > len(faculties):
         return ["Option not recognized", False]
     faculty: List[Faculty] = faculties[option_chosen-1]
     added = user.add_faculty(message.author.name, faculty)
+
     if added:
         pre_title = f"Added {faculty.acronym}: {faculty.name.strip()}"
-        title = "Add schedule"
-        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
-        formated_output = format_output(pre_title + '\n\n' + title, options)
-        user.add_current_schedule_interaction(message.author.name)
-        return [formated_output, False]
     else:
         pre_title = f"You already added {faculty.acronym}: {faculty.name.strip()}"
-        title = "Add schedule"
-        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
-        formated_output = format_output(pre_title + '\n\n' + title, options)
-        user.add_current_schedule_interaction(message.author.name)
-        return [formated_output, False]
+    title = "Add schedule"
+    options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
+    formated_output = format_output(pre_title + '\n\n' + title, options)
+    user.add_current_schedule_interaction(message.author.name)
+    return [formated_output, False]
 
 def process_choose_faculty_to_edit(message, public, command):
     option_chosen = get_option_chosen(command)
@@ -147,9 +149,48 @@ def process_choose_faculty_to_edit(message, public, command):
     title = f"Escolheste a faculdade {faculty['name']}: {faculty['full_name'].strip()}"
     options = ["Adicionar curso", "Editar horario de curso"]
     formated_output = format_output(title, options)
-    user.add_current_schedule_faculty_interaction(message.author.name, faculty)
+    user.add_current_faculty_course_interaction(message.author.name, faculty)
     return [formated_output, False]
 
+def process_manage_faculty_courses(message, public, command):
+    option_chosen = get_option_chosen(command)
+    if option_chosen == -1:
+        return ["Option not recognized", False]
+    
+    if option_chosen == 1:
+        faculty: dict = user.get_current_interaction_data(message.author.name)
+        courses: Course = api.get_faculty_courses(faculty['name'])
+        title = f"Cursos disponiveis em {faculty['name']}: {faculty['full_name'].strip()}"
+        options = [f"{course.name.strip()}" for course in courses]
+        formated_output = format_output(title, options)
+        user.add_course_interaction(message.author.name, faculty, courses)
+        return [formated_output, False]
+    else:
+        # List current faculty courses
+        pass
+
+def process_add_course(message, public, command):
+    option_chosen = get_option_chosen(command)
+    if option_chosen == -1:
+        return ["Option not recognized", False]
+    
+    data = user.get_current_interaction_data(message.author.name)
+    courses: List[Course] = data['courses']
+    faculty: dict = data['faculty']
+    if option_chosen <= 0 or option_chosen > len(courses):
+        return ["Option not recognized", False]
+    course: Course = courses[option_chosen-1]
+    added = user.add_course(message.author.name, faculty, course)
+
+    if added:
+        pre_title = f"Added {course.acronym}: {course.name.strip()}"
+    else:   
+        pre_title = f"You already added {course.acronym}: {course.name.strip()}"
+    title = f"Escolheste a faculdade {faculty['name']}: {faculty['full_name'].strip()}"
+    options = ["Adicionar curso", "Editar horario de curso"]
+    formated_output = format_output(pre_title + '\n\n' + title, options)
+    user.add_current_faculty_course_interaction(message.author.name, faculty)
+    return [formated_output, False]
 
 
 def get_option_chosen(command):
@@ -161,6 +202,6 @@ def get_option_chosen(command):
     return option_chosen
 
 def format_output(title, options):
-    numbered_options = [f'{index}. {elm}' for index, elm in enumerate(options)] 
+    numbered_options = [f'{index+1}. {elm}' for index, elm in enumerate(options)] 
     output = title + '\n' + '\n'.join(numbered_options)
     return output
