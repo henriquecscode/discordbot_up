@@ -18,7 +18,22 @@ async def on_message(message):
         result = input.process_input(message, public)
         answer = result[0]
         is_sensitive = result[1]
-        await message.channel.send(answer)
+        await safe_send_message(message.channel, answer)
         if public:
             if is_sensitive:
                 await message.delete()
+
+
+async def safe_send_message(channel, message):
+    if len(message) < 2000:
+        await channel.send(message)
+        return
+    
+    lines = message.split("\n")
+    current_message = ""
+    for line in lines:
+        if len(current_message) + len(line) < 2000:
+            current_message += line + "\n"
+        else:
+            await channel.send(current_message)
+            current_message = line + "\n"
