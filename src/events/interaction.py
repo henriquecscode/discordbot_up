@@ -7,3 +7,5 @@ class Interaction(Enum):
     MANAGE_FACULTY = "manage_faculty"
     ADD_COURSE = "add_course"
     EDIT_COURSE = "edit_course"
+    MANAGE_COURSE = "manage_course"
+    ADD_CLASS = "add_class"

@@ -142,6 +142,7 @@ def add_course(user, faculty: dict, course: Course):
             course_data = {
                 "name": course.acronym,
                 "full_name": course.name,
+                "id": course.id,
                 "course_units": []
             }
             user_faculty["courses"].append(course_data)
@@ -154,6 +155,28 @@ def get_faculty_courses(user, faculty: dict) -> List[dict]:
         if user_faculty["name"] == faculty['name']:
             return user_faculty["courses"]
     return []
+
+def add_course_unit(user, faculty: dict, course: dict, course_unit: CourseUnit):
+    for user_faculty in users[user]["faculties"]:
+        if user_faculty["name"] == faculty['name']:
+            for user_course in user_faculty["courses"]:
+                if user_course["name"] == course['name']:
+                    for user_course_unit in user_course["course_units"]:
+                        if user_course_unit["name"] == course_unit.name:
+                            return False
+                    course_unit_data = {
+                        "name": course_unit.name,
+                        "acronym": course_unit.acronym,
+                        "id": course_unit.id,
+                        "year": course_unit.year,
+                        "semester": course_unit.semester,
+                        "classes": [],
+                        "schedule": []
+                    }
+                    user_course["course_units"].append(course_unit_data)
+                    store_data()
+                    return True
+    return False
 
 def has_current_interaction(user):
     return bool(user_interactions[user]['current_interaction'])
@@ -186,6 +209,21 @@ def add_course_edit_schedule_interaction(user, faculty: dict, courses: List[Cour
     user_interactions[user]['current_interaction_data'] = {
         "faculty": faculty,
         "courses": courses
+    }
+
+def add_current_course_class_interaction(user, faculty: dict, course: dict):
+    user_interactions[user]['current_interaction'] = Interaction.MANAGE_COURSE
+    user_interactions[user]['current_interaction_data'] = {
+        "faculty": faculty,
+        "course": course
+    }
+
+def add_class_interaction(user, faculty: dict, course: dict, classes: List[CourseUnit]):
+    user_interactions[user]['current_interaction'] = Interaction.ADD_CLASS
+    user_interactions[user]['current_interaction_data'] = {
+        "faculty": faculty,
+        "course": course,
+        "classes": classes
     }
 
 def get_current_interaction(user):

@@ -90,8 +90,8 @@ class Database:
         self.cursor.execute(query, ids)
         return self.cursor.fetchall()
     
-    def n_join_by_params(self, tables:List[str], table_ons:List[str], params:List[Param] = None)-> List[Any]:
-        query = f"SELECT * FROM {tables[0]} "
+    def n_join_by_params(self, tables:List[str], table_ons:List[str], params:List[Param] = None, select=None)-> List[Any]:
+        query = f"SELECT {'*' if select is None else f'{select}.*'} FROM {tables[0]} "
         for i in range(len(tables)-1):
             query += f"JOIN {tables[i+1]} ON {tables[i]}.{table_ons[i][0]}={tables[i+1]}.{table_ons[i][1]} "
         if params is not None:
