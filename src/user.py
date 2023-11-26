@@ -149,6 +149,12 @@ def add_course(user, faculty: dict, course: Course):
             return True
     return False
 
+def get_faculty_courses(user, faculty: dict) -> List[dict]:
+    for user_faculty in users[user]["faculties"]:
+        if user_faculty["name"] == faculty['name']:
+            return user_faculty["courses"]
+    return []
+
 def has_current_interaction(user):
     return bool(user_interactions[user]['current_interaction'])
 
@@ -170,6 +176,13 @@ def add_current_faculty_course_interaction(user, faculty):
 
 def add_course_interaction(user, faculty: dict, courses: List[Course]):
     user_interactions[user]['current_interaction'] = Interaction.ADD_COURSE
+    user_interactions[user]['current_interaction_data'] = {
+        "faculty": faculty,
+        "courses": courses
+    }
+
+def add_course_edit_schedule_interaction(user, faculty: dict, courses: List[Course]):
+    user_interactions[user]['current_interaction'] = Interaction.EDIT_COURSE
     user_interactions[user]['current_interaction_data'] = {
         "faculty": faculty,
         "courses": courses

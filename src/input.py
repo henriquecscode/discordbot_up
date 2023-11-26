@@ -157,8 +157,8 @@ def process_manage_faculty_courses(message, public, command):
     if option_chosen == -1:
         return ["Option not recognized", False]
     
+    faculty: dict = user.get_current_interaction_data(message.author.name)
     if option_chosen == 1:
-        faculty: dict = user.get_current_interaction_data(message.author.name)
         courses: Course = api.get_faculty_courses(faculty['name'])
         title = f"Cursos disponiveis em {faculty['name']}: {faculty['full_name'].strip()}"
         options = [f"{course.name.strip()}" for course in courses]
@@ -167,7 +167,12 @@ def process_manage_faculty_courses(message, public, command):
         return [formated_output, False]
     else:
         # List current faculty courses
-        pass
+        courses = user.get_faculty_courses(message.author.name, faculty)
+        title = f"Escolher curso de {faculty['name']} para editar horario"
+        options = [f"{course['name']}: {course['full_name'].strip()}" for course in courses]
+        formated_output = format_output(title, options)
+        user.add_course_edit_schedule_interaction(message.author.name, faculty, courses)
+        return [formated_output, False]
 
 def process_add_course(message, public, command):
     option_chosen = get_option_chosen(command)

@@ -6,3 +6,4 @@ class Interaction(Enum):
     CHOOSE_FACULTY_TO_EDIT = "choose_faculty_to_edit"
     MANAGE_FACULTY = "manage_faculty"
     ADD_COURSE = "add_course"
+    EDIT_COURSE = "edit_course"
