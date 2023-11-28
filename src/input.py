@@ -84,15 +84,16 @@ def process_input(message, public):
                     else:
                         event_name = parts[1]
                 else:
-                    return ["No date found", False]
+                    return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023", False]
                 if date_index < 2:
                     return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
                 date_obj = get_date(message.content.split()[date_index])
-                if not (re.match(r'^([01]\d|2[0-3]):([0-5]\d)$',  message.content.split()[date_index + 1])):
-                        return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
                 minutes = 0
-                hours = 0
+                hours = 12
                 if len(message.content.split()) > date_index + 1:
+                    pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
+                    if not (re.match(pattern,  message.content.split()[date_index + 1])):
+                        return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
                     hours, minutes = message.content.split()[date_index + 1].split(":")
                 if date_obj[0] == "failed":
                     return ["Unsupported date format. Supported formats: '%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y'", False]
@@ -100,12 +101,16 @@ def process_input(message, public):
                     return [user.create_event(message.author.name, date_obj[1], event_name, hours, minutes), False]
         if command == "!events":
             user.update_events(message.author.name)
-            if message.content.split()[1] == "delete":
-                return [user.delete_event(message.author.name, message.content.split()[2]), False]
+            if len(message.content.split()) > 1:
+                if message.content.split()[1] == "delete":
+                    return [user.delete_event(message.author.name, int(message.content.split()[2]) - 1), False]
             else:
                 title = "Your future events:"
                 options = user.get_events_list(message.author.name)
-                return [format_output(title, options) + "\nIn order to delete events do !events delete #", False]
+                if len(options) > 0:
+                    return [format_output(title, options) + "\nIn order to delete events do !events delete #", False]
+                else:
+                    return "This user has no events!"
     else:
         if command == "!cancel":
             user.cancel_current_interaction(message.author.name)

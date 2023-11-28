@@ -250,20 +250,21 @@ def create_event(user, date_obj, name, hour , minute):
         event = [name, event_time.timestamp()]
         users[user]["data"]["events"].append(event)
         store_data()
-        return "Event '" + name + "' at " + str(event_time) + " saved to your events. Do !events to check your future events"
+        return "Event '" + name + "' at " + str(event_time.strftime('%d-%m-%Y %H:%M')) + " saved to your events. Do !events to check your future events"
 
 def delete_event(user, event):
     if event > len(users[user]["data"]["events"]) or event < 0:
         return "That event doesn't exist"
     event_name = users[user]["data"]["events"][event][0]
-    users[user]["data"]["events"].remove(event)
+    users[user]["data"]["events"].pop(event)
     store_data()
     return "Event " + event_name + " deleted"
 
 def get_events_list(user):
     events_list =[]
     for event in users[user]["data"]["events"]:
-        events_list.append(event[0])
+        events_list.append(event[0] + " at " + str(datetime.utcfromtimestamp(event[1]).strftime('%d-%m-%Y %H:%M')))
+    return events_list
 
 
 def update_events(user):
