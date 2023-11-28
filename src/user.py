@@ -238,7 +238,6 @@ def cancel_current_interaction(user):
     user_interactions[user]['current_interaction_data'] = None
 
 def create_event(user, date_obj, name, hour , minute):
-
     if (hour or minute):
         time_delta = timedelta(hours=int(hour), minutes=int(minute))
         event_time = date_obj + time_delta
@@ -252,3 +251,25 @@ def create_event(user, date_obj, name, hour , minute):
         users[user]["data"]["events"].append(event)
         store_data()
         return "Event '" + name + "' at " + str(event_time) + " saved to your events. Do !events to check your future events"
+
+def delete_event(user, event):
+    if event > len(users[user]["data"]["events"]) or event < 0:
+        return "That event doesn't exist"
+    event_name = users[user]["data"]["events"][event][0]
+    users[user]["data"]["events"].remove(event)
+    store_data()
+    return "Event " + event_name + " deleted"
+
+def get_events_list(user):
+    events_list =[]
+    for event in users[user]["data"]["events"]:
+        events_list.append(event[0])
+
+
+def update_events(user):
+    now = datetime.now().timestamp()
+    week = 604800
+    for index, event_time in enumerate(users[user]["data"]["events"]):
+        if now >= event_time[1] + week:
+            delete_event(user, index)
+    return

@@ -4,6 +4,8 @@ from database.database_api import api
 from typing import List
 from database.dbs.schema import *
 from datetime import datetime
+import re
+
 
 def process_input(message, public):
     #Create an account for the author of the message and all those mentioned, podemos ter de mudar quando formos buscar dados ao sigarra
@@ -83,7 +85,11 @@ def process_input(message, public):
                         event_name = parts[1]
                 else:
                     return ["No date found", False]
+                if date_index < 2:
+                    return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
                 date_obj = get_date(message.content.split()[date_index])
+                if not (re.match(r'^([01]\d|2[0-3]):([0-5]\d)$',  message.content.split()[date_index + 1])):
+                        return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
                 minutes = 0
                 hours = 0
                 if len(message.content.split()) > date_index + 1:
@@ -92,7 +98,14 @@ def process_input(message, public):
                     return ["Unsupported date format. Supported formats: '%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y'", False]
                 else:
                     return [user.create_event(message.author.name, date_obj[1], event_name, hours, minutes), False]
-
+        if command == "!events":
+            user.update_events(message.author.name)
+            if message.content.split()[1] == "delete":
+                return [user.delete_event(message.author.name, message.content.split()[2]), False]
+            else:
+                title = "Your future events:"
+                options = user.get_events_list(message.author.name)
+                return [format_output(title, options) + "\nIn order to delete events do !events delete #", False]
     else:
         if command == "!cancel":
             user.cancel_current_interaction(message.author.name)
