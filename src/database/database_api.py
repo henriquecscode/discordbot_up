@@ -25,7 +25,7 @@ class Database_API:
         return self.db.get_all('course')
 
     def _get_faculty_courses(self, faculty_id):
-        return self.db.get_join_all_by_param('course', 'faculty', 'faculty_id', 'acronym', Param(f"faculty.{FACULTY_ID}", faculty_id)) #TODO Check
+        return self.db.get_join_all_by_param('faculty', 'course', 'acronym', 'faculty_id', Param(f"faculty.{FACULTY_ID}", faculty_id)) #TODO Check
     
     def get_faculty_courses(self, faculty_id) -> List[Course]:
         faculty_courses = self._get_faculty_courses(faculty_id)
