@@ -11,63 +11,72 @@ def process_input(message, public):
         user.account_checker(util.name)
 
     command = message.content.split()[0]
-    if not user.has_current_interaction(message.author.name):
+
+    return_message = None
          
-        if command == "!add_friend":
-            if len(message.mentions) != 1:
-                return ["You have to mention which friend you would like to add. Ex.: !add_friend @someone", False]
-            return [user.send_friend_request(message.author.name, message.mentions[0].name), False]
+    # Checking base interaction
+    if command == "!add_friend":
+        if len(message.mentions) != 1:
+            return_message = ["You have to mention which friend you would like to add. Ex.: !add_friend @someone", False]
+        return_message = [user.send_friend_request(message.author.name, message.mentions[0].name), False]
 
-        if command == "!friend_requests":
-            return [user.check_friend_requests(message.author.name), False]
+    elif command == "!friend_requests":
+        return_message = [user.check_friend_requests(message.author.name), False]
+    
+    elif command == "!accept":
+        if len(message.content.split()) < 2:
+            return_message = ["You have to specify which friend request to accept. Ex.: !accept 1", False]
+        return_message = [user.accept_friend_request(message.author.name, int(message.content.split()[1])), False]
+    
+    elif command == "!remove_friend":
+        if len(message.content.split()) < 2:
+            return_message = ["You have to specify which friend to remove. Ex.: !remove_friend @someone", False]
+        if len(message.mentions) != 1:
+            return_message = ["You have to mention which friend you would like to remove. Ex.: !remove_friend @someone", False]
         
-        if command == "!accept":
-            if len(message.content.split()) < 2:
-                return ["You have to specify which friend request to accept. Ex.: !accept 1", False]
-            return [user.accept_friend_request(message.author.name, int(message.content.split()[1])), False]
-        
-        if command == "!remove_friend":
-            if len(message.content.split()) < 2:
-                return ["You have to specify which friend to remove. Ex.: !remove_friend @someone", False]
-            if len(message.mentions) != 1:
-                return ["You have to mention which friend you would like to remove. Ex.: !remove_friend @someone", False]
-            
-            return [user.remove_friend(message.author.name, message.mentions[0].name), False]
-        
-        if command == "!friends_list":
-            return [user.show_friends_list(message.author.name), False]
-        
-        if command == "!add_session_cookie":
-                if public:
-                    return ["This is sensitive private information! Please only use this command on private DM's!", True]
-                if len(message.content.split()) < 2:
-                    return ["You have to input your session cookie. Ex.: !add_session_cookie <cookie>", False]
-                return [user.add_cookie(message.author.name, int(message.content.split()[1])), True]
-        
-        if command == "!add_username":
-            if public:
-                return ["This is sensitive private information! Please only use this command on private DM's!", True]
-            if len(message.content.split()) < 2:
-                    return ["You have to input your username. Ex.: !add_username <username>", False]
-            return [user.add_username(message.author.name, message.content.split()[1]), True]
+        return_message = [user.remove_friend(message.author.name, message.mentions[0].name), False]
+    
+    elif command == "!friends_list":
+        return_message = [user.show_friends_list(message.author.name), False]
+    
+    elif command == "!add_session_cookie":
+        if public:
+            return_message = ["This is sensitive private information! Please only use this command on private DM's!", True]
+        if len(message.content.split()) < 2:
+            return_message = ["You have to input your session cookie. Ex.: !add_session_cookie <cookie>", False]
+        return_message = [user.add_cookie(message.author.name, int(message.content.split()[1])), True]
+    
+    elif command == "!add_username":
+        if public:
+            return_message = ["This is sensitive private information! Please only use this command on private DM's!", True]
+        if len(message.content.split()) < 2:
+                return_message = ["You have to input your username. Ex.: !add_username <username>", False]
+        return_message = [user.add_username(message.author.name, message.content.split()[1]), True]
 
-        if command == "!add_password":
-            if public:
-                return ["This is sensitive private information! Please only use this command on private DM's!", True]
-            if len(message.content.split()) < 2:
-                    return ["You have to input your password. Ex.: !add_password <password>", False]
-            return [user.add_password(message.author.name, message.content.split()[1]), True]
+    elif command == "!add_password":
+        if public:
+            return_message = ["This is sensitive private information! Please only use this command on private DM's!", True]
+        if len(message.content.split()) < 2:
+                return_message = ["You have to input your password. Ex.: !add_password <password>", False]
+        return_message = [user.add_password(message.author.name, message.content.split()[1]), True]
 
-        if command == "!help":
-            return ["Available commands:\n!add_friend\n!friend_requests\n!accept\n!friends_list\n!remove_friend\n!add_session_cookie", False]
+    elif command == "!help":
+        return_message = ["Available commands:\n!add_friend\n!friend_requests\n!accept\n!friends_list\n!remove_friend\n!add_session_cookie", False]
 
-        if command == "!add_schedule":
-            title = "Add schedule"
-            options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
-            formated_output = format_output(title, options)
-            user.add_current_schedule_interaction(message.author.name)
-            return [formated_output, False]
-    else:
+    elif command == "!add_schedule":
+        title = "Add schedule"
+        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
+        formated_output = format_output_with_cancel(title, options)
+        user.add_current_schedule_interaction(message.author.name)
+        return_message = [formated_output, False]
+
+    if return_message is not None:
+        user.cancel_current_interaction(message.author.name)
+        return return_message
+    
+
+    # Continuing interaction
+    if user.has_current_interaction(message.author.name):        
         if command == "!cancel":
             user.cancel_current_interaction(message.author.name)
             return ["Canceled", False]
