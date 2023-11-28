@@ -28,8 +28,9 @@ class Database_API:
         return self.db.get_join_all_by_param('course', 'faculty', 'faculty_id', 'acronym', Param(f"faculty.{FACULTY_ID}", faculty_id)) #TODO Check
     
     def get_faculty_courses(self, faculty_id) -> List[Course]:
-        courses = self._get_faculty_courses(faculty_id)
-        course_objects = [Course(course) for course in courses]
+        faculty_courses = self._get_faculty_courses(faculty_id)
+        faculty_courses_objects = Database_API.get_objects([Faculty, Course], faculty_courses)
+        course_objects = [object.Course for object in faculty_courses_objects]
         return course_objects
     
     def _get_course_course_units_year(self, course_id):
@@ -44,8 +45,14 @@ class Database_API:
         course_units_objects = Database_API.get_objects([CourseUnitYear, CourseUnit], course_units)
         return course_units_objects
     
-    def _get_course_unit_schedule(self, course_unit_id):
+    def _get_course_unit_schedules(self, course_unit_id):
         return self.db.get_join_all_by_param('course_unit', 'schedule', 'id', 'id', Param(f"course_unit.{COURSE_UNIT_ID}", course_unit_id))
+    
+    def get_course_unit_schedules(self, course_unit_id) -> List[Schedule]:
+        course_unit_schedules = self._get_course_unit_schedules(course_unit_id)
+        course_unit_schedules_objects = Database_API.get_objects([CourseUnit, Schedule], course_unit_schedules)
+        schedule_objects = [object.Schedule for object in course_unit_schedules_objects]
+        return schedule_objects
     
     @staticmethod
     def get_objects(classes: List[Table], data: List[Tuple[Any]]) -> List[Object]:

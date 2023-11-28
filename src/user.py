@@ -189,6 +189,41 @@ def get_course_course_units(user, faculty: dict, course: dict) -> List[dict]:
                     return user_course["course_units"]
     return []
 
+def add_class(user, faculty: dict, course: dict, course_unit: dict, schedule: Schedule):
+    for user_faculty in users[user]["faculties"]:
+        if user_faculty["name"] == faculty['name']:
+            for user_course in user_faculty["courses"]:
+                if user_course["name"] == course['name']:
+                    for user_course_unit in user_course["course_units"]:
+                        if user_course_unit["name"] == course_unit['name']:
+                            for user_class in user_course_unit["classes"]:
+                                if user_class["name"] == schedule.class_name:
+                                    return False
+                            class_data = {
+                                "name": schedule.class_name,
+                                "acronym": schedule.lesson_type,
+                                "id": schedule.id,
+                                "location": schedule.location,
+                                "day": schedule.day,
+                                "start_time": schedule.start_time,
+                                "duration": schedule.duration,
+                                "professor": schedule.professor_sigarra_id,
+                            }
+                            user_course_unit["classes"].append(class_data)
+                            store_data()
+                            return True
+    return False
+
+def get_course_unit_classes(user, faculty: dict, course: dict, course_unit: dict) -> List[dict]:
+    for user_faculty in users[user]["faculties"]:
+        if user_faculty["name"] == faculty['name']:
+            for user_course in user_faculty["courses"]:
+                if user_course["name"] == course['name']:
+                    for user_course_unit in user_course["course_units"]:
+                        if user_course_unit["name"] == course_unit['name']:
+                            return user_course_unit["classes"]
+    return []
+
 def has_current_interaction(user):
     return bool(user_interactions[user]['current_interaction'])
 
@@ -230,7 +265,7 @@ def add_current_course_class_interaction(user, faculty: dict, course: dict):
     }
 
 def add_add_class_unit_interaction(user, faculty: dict, course: dict, course_units: List[CourseUnit]):
-    user_interactions[user]['current_interaction'] = Interaction.ADD_CLASS
+    user_interactions[user]['current_interaction'] = Interaction.ADD_COURSE_UNIT
     user_interactions[user]['current_interaction_data'] = {
         "faculty": faculty,
         "course": course,
@@ -238,7 +273,7 @@ def add_add_class_unit_interaction(user, faculty: dict, course: dict, course_uni
     }
 
 def add_edit_class_unit_interaction(user, faculty: dict, course: dict, course_unit: dict):
-    user_interactions[user]['current_interaction'] = Interaction.EDIT_CLASS
+    user_interactions[user]['current_interaction'] = Interaction.EDIT_COURSE_UNIT
     user_interactions[user]['current_interaction_data'] = {
         "faculty": faculty,
         "course": course,
@@ -251,6 +286,15 @@ def add_current_course_unit_class_interaction(user, faculty: dict, course: dict,
         "faculty": faculty,
         "course": course,
         "course_unit": course_unit
+    }
+
+def add_choose_class_to_add_interaction(user, faculty: dict, course: dict, course_unit: dict, classes: List[Schedule]):
+    user_interactions[user]['current_interaction'] = Interaction.ADD_CLASS
+    user_interactions[user]['current_interaction_data'] = {
+        "faculty": faculty,
+        "course": course,
+        "course_unit": course_unit,
+        "classes": classes
     }
 
 def get_current_interaction(user):
