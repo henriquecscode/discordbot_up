@@ -311,6 +311,24 @@ def add_choose_class_to_add_interaction(user, faculty: dict, course: dict, cours
         "classes": classes
     }
 
+def add_choose_class_to_view_interaction(user, faculty: dict, course: dict, course_unit: dict, classes: List[dict]):
+    user_interactions[user]['current_interaction'] = Interaction.VIEW_CLASS
+    user_interactions[user]['current_interaction_data'] = {
+        "faculty": faculty,
+        "course": course,
+        "course_unit": course_unit,
+        "classes": classes
+    }
+
+def add_choose_class_to_remove_interaction(user, faculty: dict, course: dict, course_unit: dict, classes: List[dict]):
+    user_interactions[user]['current_interaction'] = Interaction.REMOVE_CLASS
+    user_interactions[user]['current_interaction_data'] = {
+        "faculty": faculty,
+        "course": course,
+        "course_unit": course_unit,
+        "classes": classes
+    }
+
 def get_current_interaction(user):
     return user_interactions[user]['current_interaction']
 

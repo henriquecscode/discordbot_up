@@ -12,4 +12,5 @@ class Interaction(Enum):
     EDIT_COURSE_UNIT = "edit_course_unit"
     MANAGE_COURSE_UNIT = "manage_course_unit"
     ADD_CLASS = "add_class"
-    EDIT_CLASS = "edit_class"
+    VIEW_CLASS = "edit_class"
+    REMOVE_CLASS = "remove_class"
