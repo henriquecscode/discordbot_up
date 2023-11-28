@@ -201,7 +201,7 @@ def add_class(user, faculty: dict, course: dict, course_unit: dict, schedule: Sc
                                     return False
                             class_data = {
                                 "name": schedule.class_name,
-                                "acronym": schedule.lesson_type,
+                                "lesson_type": schedule.lesson_type,
                                 "id": schedule.id,
                                 "location": schedule.location,
                                 "day": schedule.day,
@@ -223,6 +223,20 @@ def get_course_unit_classes(user, faculty: dict, course: dict, course_unit: dict
                         if user_course_unit["name"] == course_unit['name']:
                             return user_course_unit["classes"]
     return []
+
+def remove_class(user, faculty: dict, course: dict, course_unit: dict, class_name: str):
+    for user_faculty in users[user]["faculties"]:
+        if user_faculty["name"] == faculty['name']:
+            for user_course in user_faculty["courses"]:
+                if user_course["name"] == course['name']:
+                    for user_course_unit in user_course["course_units"]:
+                        if user_course_unit["name"] == course_unit['name']:
+                            for user_class in user_course_unit["classes"]:
+                                if user_class["name"] == class_name:
+                                    user_course_unit["classes"].remove(user_class)
+                                    store_data()
+                                    return True
+    return False
 
 def has_current_interaction(user):
     return bool(user_interactions[user]['current_interaction'])
@@ -257,7 +271,7 @@ def add_course_edit_schedule_interaction(user, faculty: dict, courses: List[Cour
         "courses": courses
     }
 
-def add_current_course_class_interaction(user, faculty: dict, course: dict):
+def add_current_course_course_unit_interaction(user, faculty: dict, course: dict):
     user_interactions[user]['current_interaction'] = Interaction.MANAGE_COURSE
     user_interactions[user]['current_interaction_data'] = {
         "faculty": faculty,
