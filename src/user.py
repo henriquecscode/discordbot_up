@@ -286,12 +286,12 @@ def add_add_class_unit_interaction(user, faculty: dict, course: dict, course_uni
         "course_units": course_units
     }
 
-def add_edit_class_unit_interaction(user, faculty: dict, course: dict, course_unit: dict):
+def add_edit_class_unit_interaction(user, faculty: dict, course: dict, course_units: List[dict]):
     user_interactions[user]['current_interaction'] = Interaction.EDIT_COURSE_UNIT
     user_interactions[user]['current_interaction_data'] = {
         "faculty": faculty,
         "course": course,
-        "course_unit": course_unit
+        "course_units": course_units
     }
 
 def add_current_course_unit_class_interaction(user, faculty: dict, course: dict, course_unit: dict):
