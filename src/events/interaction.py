@@ -9,3 +9,5 @@ class Interaction(Enum):
     EDIT_COURSE = "edit_course"
     MANAGE_COURSE = "manage_course"
     ADD_CLASS = "add_class"
+    EDIT_CLASS = "edit_class"
+    MANAGE_COURSE_UNIT = "manage_course_unit"

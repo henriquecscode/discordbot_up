@@ -36,21 +36,22 @@ class Database_API:
         return self.db.get_join_all_by_param('course', 'course_metadata', 'id', 'course_id', Param(f"course.{COURSE_ID}", course_id))
     
     def _get_course_course_unit(self, course_id):
-        course_units = self.db.n_join_by_params(["course", "course_metadata", "course_unit"], [["id", "course_id"], ["course_unit_id", "id"]], [Param(f"course.{COURSE_ID}", course_id)], "course_unit")
+        course_units = self.db.n_join_by_params(["course", "course_metadata", "course_unit"], [["id", "course_id"], ["course_unit_id", "id"]], [Param(f"course.{COURSE_ID}", course_id)], ["course_metadata", "course_unit"])
         return course_units
     
-    def get_course_course_units(self, course_id) -> List[CourseUnit]:
+    def get_course_course_units(self, course_id) -> List[Object]:
         course_units = self._get_course_course_unit(course_id)
-        course_units_objects = [CourseUnit(course_unit) for course_unit in course_units]
+        course_units_objects = Database_API.get_objects([CourseUnitYear, CourseUnit], course_units)
         return course_units_objects
     
     def _get_course_unit_schedule(self, course_unit_id):
         return self.db.get_join_all_by_param('course_unit', 'schedule', 'id', 'id', Param(f"course_unit.{COURSE_UNIT_ID}", course_unit_id))
     
     @staticmethod
-    def get_objects(classes: List[Table], data: List[Tuple[Any]]):
+    def get_objects(classes: List[Table], data: List[Tuple[Any]]) -> List[Object]:
         objects = [Object(classes, args) for args in data]
         return objects
+    
 
 db_path = os.getenv("DB_PATH")
 print(f"DB_PATH: {db_path}")

@@ -96,6 +96,9 @@ def process_input(message, public):
         
         elif interaction == Interaction.ADD_CLASS:
             return process_choose_class_to_add(message, public, command)
+        
+        elif interaction == Interaction.EDIT_CLASS:
+            return process_choose_class_to_edit(message, public, command)
 
     return ["Unknown command", False]
 
@@ -230,14 +233,21 @@ def process_manage_course_classes(message, public, command):
     course: dict = data['course']
 
     if option_chosen == 1:
-        classes: List[CourseUnit] = api.get_course_course_units(course['id'])
+        course_unit_year_course_units: List[Object] = api.get_course_course_units(course['id'])
+        course_unit_years: List[CourseUnitYear] = [object_.CourseUnitYear for object_ in course_unit_year_course_units]
+        course_units: List[CourseUnit] = [object_.CourseUnit for object_ in course_unit_year_course_units]
         title = f"Cadeiras disponiveis em {course['name']}: {course['full_name'].strip()}"
-        options = [f"{course_unit.name.strip()}: {course_unit.year} year;  {course_unit.semester} Semester" for course_unit in classes]
+        options = [f"{course_unit.name.strip()}: {course_unit_year.course_unit_year} year;  {course_unit.semester} Semester ({course_unit.year})" for course_unit_year, course_unit in zip(course_unit_years, course_units)]
         formated_output = format_output(title, options)
-        user.add_class_interaction(message.author.name, faculty, course, classes)
+        user.add_add_class_unit_interaction(message.author.name, faculty, course, course_unit_year_course_units)
         return [formated_output, False]
     elif option_chosen == 2:
-        pass
+        course_unit_year_course_units: List[dict] = user.get_course_course_units(message.author.name, faculty, course)
+        title = f"Escolher cadeira de {course['name']} para editar horario"
+        options = [f"{course_unit['name'].strip()}: {course_unit['year']} year;  {course_unit['semester']} Semester" for course_unit in course_unit_year_course_units]
+        formated_output = format_output(title, options)
+        user.add_edit_class_unit_interaction(message.author.name, faculty, course, course_unit_year_course_units)
+        return [formated_output, False]
 
     return ["Option not recognized", False]
 
@@ -248,12 +258,14 @@ def process_choose_class_to_add(message, public, command):
     data = user.get_current_interaction_data(message.author.name)
     faculty: dict = data['faculty']
     course: dict = data['course']
-    course_units: List[CourseUnit] = data['classes']
-    if option_chosen <= 0 or option_chosen > len(course_units):
+    course_unit_year_course_units: List[Object] = data['classes']
+    if option_chosen <= 0 or option_chosen > len(course_unit_year_course_units):
         return ["Option not recognized", False]
     
-    course_unit: CourseUnit = course_units[option_chosen-1]
-    added = user.add_course_unit(message.author.name, faculty, course, course_unit)
+    course_unit_year_course_unit: Object = course_unit_year_course_units[option_chosen-1]
+    course_unit: CourseUnit = course_unit_year_course_unit.CourseUnit
+    course_unit_year: CourseUnitYear = course_unit_year_course_unit.CourseUnitYear
+    added = user.add_course_unit(message.author.name, faculty, course, course_unit_year_course_unit)
 
     if added:
         pre_title = f"Added {course_unit.acronym}: {course_unit.name.strip()}"
@@ -262,7 +274,27 @@ def process_choose_class_to_add(message, public, command):
     title = f"Escolheste o curso {course['name']}: {course['full_name'].strip()}"
     options = ["Adicionar cadeira", "Editar horario de cadeira"]
     formated_output = format_output(pre_title + '\n\n' + title, options)
+    user.add_current_course_class_interaction(message.author.name, faculty, course)
     return [formated_output, False]
+
+def process_choose_class_to_edit(message, public, command):
+    option_chosen = get_option_chosen(command)
+    if option_chosen == -1:
+        return ["Option not recognized", False]
+    data = user.get_current_interaction_data(message.author.name)
+    faculty: dict = data['faculty']
+    course: dict = data['course']
+    course_unit_year_course_units: List[dict] = data['course_unit']
+    if option_chosen <= 0 or option_chosen > len(course_unit_year_course_units):
+        return ["Option not recognized", False]
+    
+    course_unit: dict = course_unit_year_course_units[option_chosen-1]
+    title = f"Escolheste a cadeira {course_unit['name']}: {course_unit['acronym'].strip()}"
+    options = ["Adicionar aula", "Ver horarios de aula"]
+    formated_output = format_output(title, options)
+    user.add_current_course_unit_class_interaction(message.author.name, faculty, course, course_unit)
+    return [formated_output, False]
+
 
 def get_option_chosen(command):
     option_chosen = command[1:].strip()
