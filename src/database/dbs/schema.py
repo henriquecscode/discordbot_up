@@ -62,7 +62,7 @@ class Schedule(Table):
         self.duration: int= args[2]*60 # Minutes
         self.start_time: int = args[3]*60 # Minutes in the day
         self.location: str = args[4]
-        self.less_type: str = args[5]
+        self.lesson_type: str = args[5]
         self.is_composed: bool = args[6]
         self.professor_sigarra_id: str = args[7]
         self.course_unit_id: int = args[8]
