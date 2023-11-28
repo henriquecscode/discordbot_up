@@ -95,10 +95,10 @@ def process_input(message, public):
             return process_manage_course_course_units(message, public, command)
         
         elif interaction == Interaction.ADD_COURSE_UNIT:
-            return process_choose_class_to_add(message, public, command)
+            return process_choose_course_unit_to_add(message, public, command)
         
         elif interaction == Interaction.EDIT_COURSE_UNIT:
-            return process_choose_class_to_edit(message, public, command)
+            return process_choose_course_unit_to_edit(message, public, command)
         
         elif interaction == Interaction.MANAGE_COURSE_UNIT:
             return process_manage_course_unit_classes(message, public, command)
