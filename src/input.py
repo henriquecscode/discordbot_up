@@ -3,6 +3,7 @@ from events.interaction import Interaction
 from database.database_api import api
 from typing import List
 from database.dbs.schema import *
+from datetime import datetime
 
 def process_input(message, public):
     #Create an account for the author of the message and all those mentioned, podemos ter de mudar quando formos buscar dados ao sigarra
@@ -67,6 +68,31 @@ def process_input(message, public):
             formated_output = format_output(title, options)
             user.add_current_schedule_interaction(message.author.name)
             return [formated_output, False]
+        
+        if command == "!add_event":
+            if len(message.content.split()) < 3:
+                return ['You have to specify the date of the event and title. You can also specify the hour. Ex.: !add_event Programming Test 31/12/2023 15:00', False]
+            else:
+                parts = message.content.split()
+                date_index = next(((i, part) for i, part in enumerate(parts) if '/' in part or '-' in part), None)
+                if date_index:
+                    date_index = date_index[0]
+                    if date_index >= 2:
+                        event_name = ' '.join(parts[1:date_index])
+                    else:
+                        event_name = parts[1]
+                else:
+                    return ["No date found", False]
+                date_obj = get_date(message.content.split()[date_index])
+                minutes = 0
+                hours = 0
+                if len(message.content.split()) > date_index + 1:
+                    hours, minutes = message.content.split()[date_index + 1].split(":")
+                if date_obj[0] == "failed":
+                    return ["Unsupported date format. Supported formats: '%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y'", False]
+                else:
+                    return [user.create_event(message.author.name, date_obj[1], event_name, hours, minutes), False]
+
     else:
         if command == "!cancel":
             user.cancel_current_interaction(message.author.name)
@@ -276,3 +302,13 @@ def format_output(title, options):
     numbered_options = [f'{index+1}. {elm}' for index, elm in enumerate(options)] 
     output = title + '\n' + '\n'.join(numbered_options)
     return output
+
+def get_date(date):
+    formats = ['%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y']
+    for fmt in formats:
+        try:
+            date_obj = datetime.strptime(date, fmt)
+            return ["worked", date_obj]
+        except ValueError:
+            pass
+    return ["failed", None]
