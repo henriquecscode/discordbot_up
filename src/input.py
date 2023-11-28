@@ -365,8 +365,13 @@ def get_option_chosen(command):
     return option_chosen
 
 def format_output(title, options):
-    numbered_options = [f'{index+1}. {elm}' for index, elm in enumerate(options)] 
+    numbered_options = [f'{index+1}: {elm}' for index, elm in enumerate(options)] 
     output = title + '\n' + '\n'.join(numbered_options)
+    return output
+
+def format_output_with_cancel(title, options):
+    numbered_options = [f'{index+1}: {elm}' for index, elm in enumerate(options)] 
+    output = title + '\n' + '\n'.join(numbered_options) + '\n' + "0: Cancel"
     return output
 
 def format_day(day_index):
