@@ -383,7 +383,7 @@ def process_manage_course_unit_classes(message, public, command):
         return [formated_output, False]
     elif option_chosen == 2 or option_chosen == 3:
         classes_: List[dict] = user_schedule.get_course_unit_classes(message.author.name, faculty, course, course_unit)
-        options = [f"{class_['data']}({class_['lesson_type']}): {format_day(class_['day'])} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}" for class_ in classes_]
+        options = [f"{class_['name']}({class_['lesson_type']}): {format_day(class_['day'])} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}" for class_ in classes_]
         if option_chosen == 2:
             title = f"Horarios de aula de {course_unit['name']}: {course_unit['acronym'].strip()}"
             user_schedule.add_choose_class_to_view_interaction(message.author.name, faculty, course, course_unit, classes_)
@@ -468,9 +468,9 @@ def process_remove_class(message, public, command):
     class_: dict = classes_[option_chosen-1]
     removed = user_schedule.remove_class(message.author.name, faculty, course, course_unit, class_)
     if removed:
-        pre_title = f"Removed {class_['data']}: {class_['lesson_type']}"
+        pre_title = f"Removed {class_['name']}: {class_['lesson_type']}"
     else:
-        pre_title = f"You already removed {class_['data']}: {class_['lesson_type']}"
+        pre_title = f"You already removed {class_['name']}: {class_['lesson_type']}"
     title = f"Escolheste a cadeira {course_unit['name']}: {course_unit['acronym'].strip()}"
     options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
