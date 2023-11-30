@@ -264,7 +264,7 @@ def get_events_list(user):
     events_list =[]
     for event in users[user]["data"]["events"]:
         events_list.append(event[0] + " at " + str(datetime.utcfromtimestamp(event[1]).strftime('%d-%m-%Y %H:%M')))
-    return events_list
+    return sorted(events_list, key=lambda x: x[1])
 
 
 def update_events(user):

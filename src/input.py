@@ -108,7 +108,7 @@ def process_input(message, public):
                 title = "Your future events:"
                 options = user.get_events_list(message.author.name)
                 if len(options) > 0:
-                    return [format_output(title, options) + "\nIn order to delete events do !events delete #", False]
+                    return [format_output(title, options) + "\n\nIn order to delete events do !events delete #", False]
                 else:
                     return "This user has no events!"
     else:
