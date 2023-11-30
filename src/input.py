@@ -14,6 +14,7 @@ def process_input(message, public):
     command = message.content.split()[0]
 
     return_message = None
+    new_interaction = False
          
     # Checking base interaction
     if command == "!add_friend":
@@ -69,10 +70,12 @@ def process_input(message, public):
         options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_schedule_interaction(message.author.name)
+        new_interaction = True
         return_message = [formated_output, False]
 
     if return_message is not None:
-        user.cancel_current_interaction(message.author.name)
+        if not new_interaction:
+            user.cancel_current_interaction(message.author.name)
         return return_message
     
 
