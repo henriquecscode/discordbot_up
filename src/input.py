@@ -295,7 +295,7 @@ def process_manage_course_course_units(message, public, command):
         user_schedule.add_add_class_unit_interaction(message.author.name, faculty, course, course_unit_year_course_units)
         return [formated_output, False]
     elif option_chosen == 2:
-        course_unit_year_course_units: List[dict] = user.get_course_course_units(message.author.name, faculty, course)
+        course_unit_year_course_units: List[dict] = user_schedule.get_course_course_units(message.author.name, faculty, course)
         title = f"Escolher cadeira de {course['name']} para editar horario"
         options = [f"{course_unit['name'].strip()}: {course_unit['year']} year;  {course_unit['semester']} Semester" for course_unit in course_unit_year_course_units]
         formated_output = format_output_with_cancel(title, options)
