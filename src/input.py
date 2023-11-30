@@ -213,8 +213,7 @@ def process_view_schedule(message):
         if len(schedules_classes[faculty_string]) == 0:
             del schedules_classes[faculty_string]      
     if len(schedules_classes) == 0:
-            del schedules_classes
-
+        schedules_classes = None
     return_string = ""
     if schedules_classes is None:
         return_message = ["You have no schedule", False]
