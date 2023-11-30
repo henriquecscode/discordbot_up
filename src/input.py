@@ -66,7 +66,7 @@ def process_input(message, public):
         return_message = [user.add_password(message.author.name, message.content.split()[1]), True]
 
     elif command == "!help":
-        return_message = ["Available commands:\n!add_friend\n!friend_requests\n!accept\n!friends_list\n!remove_friend\n!add_session_cookie", False]
+        return_message = ["Available commands:\n!add_friend\n!friend_requests\n!accept\n!friends_list\n!remove_friend\n!add_session_cookie\n!add_event\n!events\n!add_schedule\n!view_schedule", False]
 
     elif command == "!add_event":
         if len(message.content.split()) < 3:
