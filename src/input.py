@@ -4,6 +4,9 @@ from events.interaction import Interaction
 from database.database_api import api
 from typing import List
 from database.dbs.schema import *
+from datetime import datetime
+import re
+
 
 def process_input(message, public):
     #Create an account for the author of the message and all those mentioned, podemos ter de mudar quando formos buscar dados ao sigarra
@@ -583,3 +586,13 @@ def format_time(start_time):
     minutes = int(start_time%60)
     start_time_str = f"{hours:02d}:{minutes:02d}"
     return start_time_str
+
+def get_date(date):
+    formats = ['%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y']
+    for fmt in formats:
+        try:
+            date_obj = datetime.strptime(date, fmt)
+            return ["worked", date_obj]
+        except ValueError:
+            pass
+    return ["failed", None]

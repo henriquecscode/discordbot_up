@@ -1,6 +1,9 @@
 import json
 import re
 import os
+from events.interaction import Interaction
+from database.dbs.schema import *
+from datetime import datetime, timedelta
 
 users = {}
 user_interactions = {}
@@ -127,3 +130,43 @@ def get_current_interaction_data(user):
 def cancel_current_interaction(user):
     user_interactions[user]['current_interaction'] = None
     user_interactions[user]['current_interaction_data'] = None
+
+def create_event(user, date_obj, name, hour , minute):
+    if (hour or minute):
+        time_delta = timedelta(hours=int(hour), minutes=int(minute))
+        event_time = date_obj + time_delta
+    else:
+        event_time = date_obj
+
+    if event_time < datetime.now():
+        return "This date is from the past, please only setup future events"
+    else:
+        event = [name, event_time.timestamp()]
+        users[user]["data"]["events"].append(event)
+        store_data()
+        return "Event '" + name + "' at " + str(event_time.strftime('%d-%m-%Y %H:%M')) + " saved to your events. Do !events to check your future events"
+
+def delete_event(user, event):
+    if event > len(users[user]["data"]["events"]) or event < 0:
+        return "That event doesn't exist"
+    event_name = users[user]["data"]["events"][event][0]
+    users[user]["data"]["events"].pop(event)
+    store_data()
+    return "Event " + event_name + " deleted"
+
+def get_events_list(user):
+    events_list =[]
+    for event in users[user]["data"]["events"]:
+        events_list.append(event[0] + " at " + str(datetime.utcfromtimestamp(event[1]).strftime('%d-%m-%Y %H:%M')))
+    return events_list
+
+
+def update_events(user):
+    users[user]["data"]["events"] = sorted(users[user]["data"]["events"], key=lambda x: x[1])
+    now = datetime.now().timestamp()
+    week = 604800
+    for index, event_time in enumerate(users[user]["data"]["events"]):
+        if now >= event_time[1] + week:
+            delete_event(user, index)
+    store_data()
+    return
