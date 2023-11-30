@@ -62,7 +62,7 @@ def process_input(message, public):
             return [user.add_password(message.author.name, message.content.split()[1]), True]
 
         if command == "!help":
-            return ["Available commands:\n!add_friend\n!friend_requests\n!accept\n!friends_list\n!remove_friend\n!add_session_cookie", False]
+            return ["Available commands:\n!add_friend\n!friend_requests\n!accept\n!friends_list\n!remove_friend\n!add_session_cookie\n!add_schedule\n!events\n!add_event", False]
 
         if command == "!add_schedule":
             title = "Add schedule"
@@ -88,8 +88,8 @@ def process_input(message, public):
                 if date_index < 2:
                     return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
                 date_obj = get_date(message.content.split()[date_index])
-                minutes = 0
-                hours = 12
+                minutes = 59
+                hours = 23
                 if len(message.content.split()) > date_index + 1:
                     pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
                     if not (re.match(pattern,  message.content.split()[date_index + 1])):

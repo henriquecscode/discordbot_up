@@ -264,13 +264,15 @@ def get_events_list(user):
     events_list =[]
     for event in users[user]["data"]["events"]:
         events_list.append(event[0] + " at " + str(datetime.utcfromtimestamp(event[1]).strftime('%d-%m-%Y %H:%M')))
-    return sorted(events_list, key=lambda x: x[1])
+    return events_list
 
 
 def update_events(user):
+    users[user]["data"]["events"] = sorted(users[user]["data"]["events"], key=lambda x: x[1])
     now = datetime.now().timestamp()
     week = 604800
     for index, event_time in enumerate(users[user]["data"]["events"]):
         if now >= event_time[1] + week:
             delete_event(user, index)
+    store_data()
     return
