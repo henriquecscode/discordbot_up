@@ -503,5 +503,5 @@ def format_day(day_index):
 def format_time(start_time):
     hours = int(start_time//60)
     minutes = int(start_time%60)
-    start_time_str = f"{hours}:{minutes}"
+    start_time_str = f"{hours:02d}:{minutes:02d}"
     return start_time_str
