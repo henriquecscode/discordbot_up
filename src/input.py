@@ -68,6 +68,49 @@ def process_input(message, public):
     elif command == "!help":
         return_message = ["Available commands:\n!add_friend\n!friend_requests\n!accept\n!friends_list\n!remove_friend\n!add_session_cookie", False]
 
+    elif command == "!add_event":
+        if len(message.content.split()) < 3:
+            return ['You have to specify the date of the event and title. You can also specify the hour. Ex.: !add_event Programming Test 31/12/2023 15:00', False]
+        else:
+            parts = message.content.split()
+            date_index = next(((i, part) for i, part in enumerate(parts) if '/' in part or '-' in part), None)
+            if date_index:
+                date_index = date_index[0]
+                if date_index >= 2:
+                    event_name = ' '.join(parts[1:date_index])
+                else:
+                    event_name = parts[1]
+            else:
+                return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023", False]
+            if date_index < 2:
+                return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
+            date_obj = get_date(message.content.split()[date_index])
+            minutes = 59
+            hours = 23
+            if len(message.content.split()) > date_index + 1:
+                pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
+                if not (re.match(pattern,  message.content.split()[date_index + 1])):
+                    return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
+                hours, minutes = message.content.split()[date_index + 1].split(":")
+            if date_obj[0] == "failed":
+                return ["Unsupported date format. Supported formats: '%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y'", False]
+            else:
+                return [user.create_event(message.author.name, date_obj[1], event_name, hours, minutes), False]
+            
+    if command == "!events":
+            user.update_events(message.author.name)
+            if len(message.content.split()) > 1:
+                if message.content.split()[1] == "delete":
+                    return [user.delete_event(message.author.name, int(message.content.split()[2]) - 1), False]
+            else:
+                title = "Your future events:"
+                options = user.get_events_list(message.author.name)
+                if len(options) > 0:
+                    return [format_output(title, options) + "\n\nIn order to delete events do !events delete #", False]
+                else:
+                    return "This user has no events!"    
+    
+
     elif command == "!add_schedule":
         title = "Add schedule"
         options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
