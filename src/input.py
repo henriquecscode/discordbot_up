@@ -73,6 +73,10 @@ def process_input(message, public):
         new_interaction = True
         return_message = [formated_output, False]
 
+    elif command == "!view_schedule":
+        return_message = process_view_schedule(message)
+
+
     if return_message is not None:
         if not new_interaction:
             user.cancel_current_interaction(message.author.name)
@@ -126,6 +130,77 @@ def process_input(message, public):
             return process_remove_class(message, public, command)
 
     return ["Unknown command", False]
+
+def process_view_schedule(message):
+    schedule : List[dict] = user_schedule.get_schedule(message.author.name)
+    has_faculties = False
+    has_courses = False
+    has_course_units = False
+    has_classes = False
+
+    faculties = schedule['faculties']
+    schedules_classes = {}
+    for faculty in faculties:
+        faculty_string = f"{faculty['name']}"
+        schedules_classes[faculty_string] = schedules_classes.get(faculty_string, {})
+        schedules_faculty = schedules_classes[faculty_string]
+        courses = faculty['courses']
+        for course in courses:
+            course_string = f"{course['name']}"
+            schedules_faculty[course_string] = schedules_faculty.get(course_string, {})
+            schedules_course = schedules_faculty[course_string]
+            course_units = course['course_units']
+            for course_unit in course_units:
+                course_unit_string = f"{course_unit['name']}"
+                schedules_course[course_unit_string] = schedules_course.get(course_unit_string, [])
+                classes = course_unit['classes']
+                for class_ in classes:
+                    class_string = f"{class_['name']}({class_['lesson_type']}): {format_day(class_['day'])} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}"
+                    schedules_classes[faculty_string][course_string][course_unit_string].append(class_string)
+
+                if len(schedules_classes[faculty_string][course_string][course_unit_string]) == 0:
+                    del schedules_classes[faculty_string][course_string][course_unit_string]
+
+            if len(schedules_classes[faculty_string][course_string]) == 0:
+                del schedules_classes[faculty_string][course_string]
+
+        if len(schedules_classes[faculty_string]) == 0:
+            del schedules_classes[faculty_string]      
+    if len(schedules_classes) == 0:
+            del schedules_classes
+
+    return_string = ""
+    if schedules_classes is None:
+        return_message = ["You have no schedule", False]
+    else:
+        for faculty in schedules_classes:
+            return_string += f"{faculty} "
+            if len(schedules_classes[faculty]) > 1:
+                return_string += "\n"
+                faculty_ident = "\t"
+            else:
+                faculty_ident = ""
+            for course in schedules_classes[faculty]:
+                return_string += f"{faculty_ident}{course} "
+                if len(schedules_classes[faculty][course]) > 1:
+                    return_string += f"\n"
+                    course_ident = faculty_ident + "\t"
+                else:
+                    course_ident = faculty_ident
+                for course_unit in schedules_classes[faculty][course]:
+                    return_string += f"{course_ident}{course_unit}\n"
+                    if len(schedules_classes[faculty][course][course_unit]) > 1:
+                        course_unit_ident = course_ident + "\t"
+                    else:
+                        course_unit_ident = course_ident
+                    for class_ in schedules_classes[faculty][course][course_unit]:
+                        class_ident = course_unit_ident + "\t"
+                        return_string += f"{class_ident}{class_}\n"
+                
+
+
+        return_message = [return_string, False]
+    return return_message
 
 def process_add_schedule(message, public, command):
     option_chosen = get_option_chosen(command)

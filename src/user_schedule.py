@@ -126,6 +126,19 @@ def remove_class(username, faculty: dict, course: dict, course_unit: dict, class
                                     return True
     return False
 
+def get_schedule(username) -> List[dict]:
+    return {
+        "faculties": user.users[username]["faculties"]
+    }
+    schedule: List[dict] = []
+    user_data = user.users[username]
+    for user_faculty in user_data["faculties"]:
+        for user_course in user_faculty["courses"]:
+            for user_course_unit in user_course["course_units"]:
+                for user_class in user_course_unit["classes"]:
+                    schedule.append(user_class)
+    return schedule
+
 def add_current_schedule_interaction(username):
     user.user_interactions[username]['current_interaction'] = Interaction.ADD_SCHEDULE
     user.user_interactions[username]['current_interaction_data'] = None
