@@ -5,7 +5,7 @@ from typing import List
 
 
 def add_faculty(username, faculty: Faculty):
-    for user_faculty in user.users[username]["faculties"]:
+    for user_faculty in user.users(username)["faculties"]:
         if user_faculty["name"] == faculty.acronym:
             return False
     
@@ -14,32 +14,28 @@ def add_faculty(username, faculty: Faculty):
         "full_name": faculty.name,
         "courses": []
     }
-    user.users[username]["faculties"].append(faculty_data)
-    user.store_data()
+    user.users_col.update_one({"id": username}, {"$push": {"faculties": faculty_data}})
     return True
 
 def get_faculties(username) -> List[dict]:
-    return user.users[username]["faculties"]
+    return user.users(username)["faculties"]
 
-def add_course(username, faculty: dict, course: Course):
-    for user_faculty in user.users[username]["faculties"]:
-        if user_faculty["name"] == faculty['name']:
-            for user_course in user_faculty["courses"]:
-                if user_course["name"] == course.name:
-                    return False
-            course_data = {
-                "name": course.acronym,
-                "full_name": course.name,
-                "id": course.id,
-                "course_units": []
-            }
-            user_faculty["courses"].append(course_data)
-            user.store_data()
-            return True
-    return False
+def add_course(username, faculty: dict, course: Course):        
+    if user.users_col.find_one({"id": username, "faculties.$[faculty].courses.$[course]": {"$in": course.name} }, array_filters=[{"faculty.name": faculty['name']}, {"course.id": course.id}]) is not None:
+        return False
+    
+    course_data = {
+    "id": course.id,
+    "name": course.acronym,
+    "full_name": course.name,
+    "course_units": []
+    }
+    
+    user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses": course_data}}, array_filters=[{"faculty.name": faculty['name']}])
+    return True
 
 def get_faculty_courses(username, faculty: dict) -> List[dict]:
-    for user_faculty in user.users[username]["faculties"]:
+    for user_faculty in user.users(username)["faculties"]:
         if user_faculty["name"] == faculty['name']:
             return user_faculty["courses"]
     return []
@@ -47,7 +43,7 @@ def get_faculty_courses(username, faculty: dict) -> List[dict]:
 def add_course_unit(username, faculty: dict, course: dict, course_unit_course_unit_year: Object):
     course_unit: CourseUnit = course_unit_course_unit_year.CourseUnit
     course_unit_year: CourseUnitYear = course_unit_course_unit_year.CourseUnitYear
-    for user_faculty in user.users[username]["faculties"]:
+    for user_faculty in user.users(username)["faculties"]:
         if user_faculty["name"] == faculty['name']:
             for user_course in user_faculty["courses"]:
                 if user_course["name"] == course['name']:
@@ -64,13 +60,14 @@ def add_course_unit(username, faculty: dict, course: dict, course_unit_course_un
                         "classes": [],
                         "schedule": []
                     }
+                    user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units": course_unit_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.name": course['name']}])
                     user_course["course_units"].append(course_unit_data)
                     user.store_data()
                     return True
     return False
 
 def get_course_course_units(username, faculty: dict, course: dict) -> List[dict]:
-    for user_faculty in user.users[username]["faculties"]:
+    for user_faculty in user.users(username)["faculties"]:
         if user_faculty["name"] == faculty['name']:
             for user_course in user_faculty["courses"]:
                 if user_course["name"] == course['name']:
@@ -78,7 +75,7 @@ def get_course_course_units(username, faculty: dict, course: dict) -> List[dict]
     return []
 
 def add_class(username, faculty: dict, course: dict, course_unit: dict, schedule: Schedule):
-    for user_faculty in user.users[username]["faculties"]:
+    for user_faculty in user.users(username)["faculties"]:
         if user_faculty["name"] == faculty['name']:
             for user_course in user_faculty["courses"]:
                 if user_course["name"] == course['name']:
@@ -103,7 +100,7 @@ def add_class(username, faculty: dict, course: dict, course_unit: dict, schedule
     return False
 
 def get_course_unit_classes(username, faculty: dict, course: dict, course_unit: dict) -> List[dict]:
-    for user_faculty in user.users[username]["faculties"]:
+    for user_faculty in user.users(username)["faculties"]:
         if user_faculty["name"] == faculty['name']:
             for user_course in user_faculty["courses"]:
                 if user_course["name"] == course['name']:
@@ -113,7 +110,7 @@ def get_course_unit_classes(username, faculty: dict, course: dict, course_unit: 
     return []
 
 def remove_class(username, faculty: dict, course: dict, course_unit: dict, class_name: str):
-    for user_faculty in user.users[username]["faculties"]:
+    for user_faculty in user.users(username)["faculties"]:
         if user_faculty["name"] == faculty['name']:
             for user_course in user_faculty["courses"]:
                 if user_course["name"] == course['name']:
@@ -128,10 +125,10 @@ def remove_class(username, faculty: dict, course: dict, course_unit: dict, class
 
 def get_schedule(username) -> List[dict]:
     return {
-        "faculties": user.users[username]["faculties"]
+        "faculties": user.users(username)["faculties"]
     }
     schedule: List[dict] = []
-    user_data = user.users[username]
+    user_data = user.users(username)
     for user_faculty in user_data["faculties"]:
         for user_course in user_faculty["courses"]:
             for user_course_unit in user_course["course_units"]:
