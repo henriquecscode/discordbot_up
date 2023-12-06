@@ -1,0 +1,9 @@
+services:
+   mongodb:
+      container_name: discordbot-up-mongodb
+      image: mongo@sha256:3ee80b67778b162efb3323c1f1539c573c9928c0540a567ebf5fec15d387327a
+      ports: 
+         - 27017:27017
+      volumes:
+         - ./mongodb/data:/data/db
+      restart: on-failure
