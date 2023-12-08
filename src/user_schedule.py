@@ -69,7 +69,7 @@ def add_course_unit(username, faculty: dict, course: dict, course_unit_course_un
         {"$unwind": "$faculties.courses"},
         {"$match": { "faculties.courses.name": course['name'] }},
         {"$unwind": "$faculties.courses.course_units"},
-        {"$match": { "faculties.courses.course_units.id": course_unit.id }},
+        {"$match": { "faculties.courses.course_units.id": course_unit.id, "faculties.courses.course_units.year": course_unit_year.course_unit_year }},
         {"$group": { "_id": "$faculties.courses.course_units" }}
     ])
 
@@ -113,7 +113,7 @@ def add_class(username, faculty: dict, course: dict, course_unit: dict, schedule
         {"$unwind": "$faculties.courses"},
         {"$match": { "faculties.courses.name": course['name'] }},
         {"$unwind": "$faculties.courses.course_units"},
-        {"$match": { "faculties.courses.course_units.id": course_unit['id'] }},
+        {"$match": { "faculties.courses.course_units.id": course_unit['id'], "faculties.courses.course_units.year": course_unit['year'] }},
         {"$unwind": "$faculties.courses.course_units.classes"},
         {"$match": { "faculties.courses.course_units.classes.id": schedule.id }},
         {"$group": { "_id": "$faculties.courses.course_units.classes" }}
@@ -144,7 +144,10 @@ def get_course_unit_classes(username, faculty: dict, course: dict, course_unit: 
         { "$unwind": "$faculties.courses" },
         { "$match": { "faculties.courses.acronym": course['acronym'] } },
         { "$unwind": "$faculties.courses.course_units" },
-        { "$match": { "faculties.courses.course_units.id": course_unit['id'] } },
+        { "$match": {"$and": [
+                     { "faculties.courses.course_units.id": course_unit['id'] }, 
+                     {"faculties.courses.course_units.year": course_unit['year']} 
+                     ]}},
         { "$unwind": "$faculties.courses.course_units.classes" },
         { "$replaceRoot": { "newRoot": "$faculties.courses.course_units.classes" } },
     ])
