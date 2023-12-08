@@ -133,7 +133,7 @@ def add_class(username, faculty: dict, course: dict, course_unit: dict, schedule
         "duration": schedule.duration,
         "professor": schedule.professor_sigarra_id,
     }
-    user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": class_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.id": course_unit['id']}])
+    user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": class_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.id": course_unit['id'], "courseunit.year" : course_unit['year']}])
     return True
 
 def get_course_unit_classes(username, faculty: dict, course: dict, course_unit: dict) -> List[dict]:
@@ -160,7 +160,7 @@ def remove_class(username, faculty: dict, course: dict, course_unit: dict, class
     a : pymongo.results.UpdateResult = user.users_col.update_one(
         {"id": username},
         {"$pull": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": {"id": class_['id']}}},
-        array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.name": course_unit['name']}])
+        array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.name": course_unit['name'], "courseunit.year" : course_unit['year']}])
     
     if a.modified_count > 0:
         return True
