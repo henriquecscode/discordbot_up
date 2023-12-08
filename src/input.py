@@ -7,6 +7,7 @@ from database.dbs.schema import *
 from datetime import datetime
 import re
 
+AUTHOR_IDS = [211486403874258944, 237236210823593984]
 
 def process_input(message, public):
     #Create an account for the author of the message and all those mentioned, podemos ter de mudar quando formos buscar dados ao sigarra
@@ -121,6 +122,29 @@ def process_input(message, public):
 
     elif command == "!view_schedule":
         return_message = process_view_schedule(message)
+
+    elif command == "!_author":
+        if message.author.id not in AUTHOR_IDS:
+            return_message = ["Admin only command", False]
+        elif len(message.content.split()) < 2:
+            return_message = ["Author commands must have another command", False]
+        else:
+            split_message = message.content.split()
+            id = split_message[1]
+            try:
+                # Get the int in <@237236210823593984>
+                id = id[2:-1]
+                id = int(id)
+                new_message_content = ' '.join(split_message[2:])
+            except:
+                id = message.author.id
+                new_message_content = ' '.join(split_message[1:])
+            new_message = message
+            new_message.content = new_message_content
+            new_message.author._user.id = id
+            output, public  = process_input(new_message, public)
+            output = f"Command executed as {id}:\n" + output
+            return_message = [output, public]
 
 
     if return_message is not None:
