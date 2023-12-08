@@ -43,7 +43,7 @@ def create_user(user):
         },
     }
     users_col.insert_one(new_user)
-    create_user_interaction(user)
+    create_user_interaction(new_user)
 
 def create_user_interaction(user):
     user_interactions[user['id']] = {
