@@ -43,7 +43,7 @@ def create_user(user):
     create_user_interaction(user)
 
 def create_user_interaction(user):
-    user_interactions[user] = {
+    user_interactions[user['id']] = {
         "current_interaction": None,
         "current_interaction_data": None
     }

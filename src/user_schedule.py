@@ -1,3 +1,4 @@
+import pymongo
 import user
 from events.interaction import Interaction
 from database.dbs.schema import *
@@ -21,7 +22,17 @@ def get_faculties(username) -> List[dict]:
     return user.users(username)["faculties"]
 
 def add_course(username, faculty: dict, course: Course):        
-    if user.users_col.find_one({"id": username, "faculties.$[faculty].courses.$[course]": {"$in": course.name} }, array_filters=[{"faculty.name": faculty['name']}, {"course.id": course.id}]) is not None:
+    user_course_cur = user.users_col.aggregate([
+        {"$match": { "id": username }},
+        {"$unwind": "$faculties"},
+        {"$match": { "faculties.name": faculty['name'] }},
+        {"$unwind": "$faculties.courses"},
+        {"$match": { "faculties.courses.acronym": course.acronym }},
+        {"$group": { "_id": "$faculties.courses" }}
+        ])
+    user_courses = list(user_course_cur)
+
+    if len(user_courses) > 0:
         return False
     
     course_data = {
@@ -35,97 +46,126 @@ def add_course(username, faculty: dict, course: Course):
     return True
 
 def get_faculty_courses(username, faculty: dict) -> List[dict]:
-    for user_faculty in user.users(username)["faculties"]:
-        if user_faculty["name"] == faculty['name']:
-            return user_faculty["courses"]
-    return []
+    # user_faculty = user.users_col.find_one({"id": username}, {"faculties.$[faculty].courses": 1}, array_filters=[{"faculty.name": faculty['name']}])
+    # user_faculty = user.users_col.find_one({"id": username, "faculties.name": faculty['name']}, {"faculties.$.courses": 1})
+
+    user_courses = user.users_col.aggregate([
+        { "$match": { "id": username } },
+        { "$unwind": "$faculties" },
+        { "$match": { "faculties.name": faculty['name'] } },
+        { "$unwind": "$faculties.courses" },
+        { "$replaceRoot": { "newRoot": "$faculties.courses" } },
+    ])  
+    user_courses = list(user_courses)
+    return user_courses
 
 def add_course_unit(username, faculty: dict, course: dict, course_unit_course_unit_year: Object):
     course_unit: CourseUnit = course_unit_course_unit_year.CourseUnit
     course_unit_year: CourseUnitYear = course_unit_course_unit_year.CourseUnitYear
-    for user_faculty in user.users(username)["faculties"]:
-        if user_faculty["name"] == faculty['name']:
-            for user_course in user_faculty["courses"]:
-                if user_course["name"] == course['name']:
-                    for user_course_unit in user_course["course_units"]:
-                        if user_course_unit["name"] == course_unit.name:
-                            return False
-                    course_unit_data = {
-                        "name": course_unit.name,
-                        "acronym": course_unit.acronym,
-                        "id": course_unit.id,
-                        "year": course_unit_year.course_unit_year,
-                        "enroll_year": course_unit.year,
-                        "semester": course_unit.semester,
-                        "classes": [],
-                        "schedule": []
-                    }
-                    user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units": course_unit_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.name": course['name']}])
-                    user_course["course_units"].append(course_unit_data)
-                    user.store_data()
-                    return True
-    return False
+    user_course_unit_cur = user.users_col.aggregate([
+        {"$match": { "id": username }},
+        {"$unwind": "$faculties"},
+        {"$match": { "faculties.name": faculty['name'] }},
+        {"$unwind": "$faculties.courses"},
+        {"$match": { "faculties.courses.name": course['name'] }},
+        {"$unwind": "$faculties.courses.course_units"},
+        {"$match": { "faculties.courses.course_units.id": course_unit.id }},
+        {"$group": { "_id": "$faculties.courses.course_units" }}
+    ])
+
+    user_course_units = list(user_course_unit_cur)
+    if len(user_course_units) > 0:
+        return False
+    
+    course_unit_data = {
+        "name": course_unit.name,
+        "acronym": course_unit.acronym,
+        "id": course_unit.id,
+        "year": course_unit_year.course_unit_year,
+        "enroll_year": course_unit.year,
+        "semester": course_unit.semester,
+        "classes": [],
+        "schedule": []
+    }
+    user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units": course_unit_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}])
+    return True
 
 def get_course_course_units(username, faculty: dict, course: dict) -> List[dict]:
-    for user_faculty in user.users(username)["faculties"]:
-        if user_faculty["name"] == faculty['name']:
-            for user_course in user_faculty["courses"]:
-                if user_course["name"] == course['name']:
-                    return user_course["course_units"]
-    return []
+    user_course_units = user.users_col.aggregate([
+
+        { "$match": { "id": username } },
+        { "$unwind": "$faculties" },
+        { "$match": { "faculties.name": faculty['name'] } },
+        { "$unwind": "$faculties.courses" },
+        { "$match": { "faculties.courses.name": course['name'] } },
+        { "$unwind": "$faculties.courses.course_units" },
+        { "$replaceRoot": { "newRoot": "$faculties.courses.course_units" } },
+    ])
+    user_course_units = list(user_course_units)
+    return user_course_units
+
 
 def add_class(username, faculty: dict, course: dict, course_unit: dict, schedule: Schedule):
-    for user_faculty in user.users(username)["faculties"]:
-        if user_faculty["name"] == faculty['name']:
-            for user_course in user_faculty["courses"]:
-                if user_course["name"] == course['name']:
-                    for user_course_unit in user_course["course_units"]:
-                        if user_course_unit["name"] == course_unit['name']:
-                            for user_class in user_course_unit["classes"]:
-                                if user_class["name"] == schedule.class_name:
-                                    return False
-                            class_data = {
-                                "name": schedule.class_name,
-                                "lesson_type": schedule.lesson_type,
-                                "id": schedule.id,
-                                "location": schedule.location,
-                                "day": schedule.day,
-                                "start_time": schedule.start_time,
-                                "duration": schedule.duration,
-                                "professor": schedule.professor_sigarra_id,
-                            }
-                            user_course_unit["classes"].append(class_data)
-                            user.store_data()
-                            return True
-    return False
+    user_class_cur = user.users_col.aggregate([
+        {"$match": { "id": username }},
+        {"$unwind": "$faculties"},
+        {"$match": { "faculties.name": faculty['name'] }},
+        {"$unwind": "$faculties.courses"},
+        {"$match": { "faculties.courses.name": course['name'] }},
+        {"$unwind": "$faculties.courses.course_units"},
+        {"$match": { "faculties.courses.course_units.id": course_unit['id'] }},
+        {"$unwind": "$faculties.courses.course_units.classes"},
+        {"$match": { "faculties.courses.course_units.classes.id": schedule.id }},
+        {"$group": { "_id": "$faculties.courses.course_units.classes" }}
+    ])
+
+    user_classes = list(user_class_cur)
+    if len(user_classes) > 0:
+        return False    
+
+    class_data = {
+        "name": schedule.class_name,
+        "lesson_type": schedule.lesson_type,
+        "id": schedule.id,
+        "location": schedule.location,
+        "day": schedule.day,
+        "start_time": schedule.start_time,
+        "duration": schedule.duration,
+        "professor": schedule.professor_sigarra_id,
+    }
+    user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": class_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.id": course_unit['id']}])
+    return True
 
 def get_course_unit_classes(username, faculty: dict, course: dict, course_unit: dict) -> List[dict]:
-    for user_faculty in user.users(username)["faculties"]:
-        if user_faculty["name"] == faculty['name']:
-            for user_course in user_faculty["courses"]:
-                if user_course["name"] == course['name']:
-                    for user_course_unit in user_course["course_units"]:
-                        if user_course_unit["name"] == course_unit['name']:
-                            return user_course_unit["classes"]
-    return []
+    user_classes = user.users_col.aggregate([
+        { "$match": { "id": username } },
+        { "$unwind": "$faculties" },
+        { "$match": { "faculties.name": faculty['name'] } },
+        { "$unwind": "$faculties.courses" },
+        { "$match": { "faculties.courses.acronym": course['acronym'] } },
+        { "$unwind": "$faculties.courses.course_units" },
+        { "$match": { "faculties.courses.course_units.id": course_unit['id'] } },
+        { "$unwind": "$faculties.courses.course_units.classes" },
+        { "$replaceRoot": { "newRoot": "$faculties.courses.course_units.classes" } },
+    ])
 
-def remove_class(username, faculty: dict, course: dict, course_unit: dict, class_name: str):
-    for user_faculty in user.users(username)["faculties"]:
-        if user_faculty["name"] == faculty['name']:
-            for user_course in user_faculty["courses"]:
-                if user_course["name"] == course['name']:
-                    for user_course_unit in user_course["course_units"]:
-                        if user_course_unit["name"] == course_unit['name']:
-                            for user_class in user_course_unit["classes"]:
-                                if user_class["name"] == class_name:
-                                    user_course_unit["classes"].remove(user_class)
-                                    user.store_data()
-                                    return True
+    user_classes = list(user_classes)
+    return user_classes
+
+
+def remove_class(username, faculty: dict, course: dict, course_unit: dict, class_: dict):
+    a : pymongo.results.UpdateResult = user.users_col.update_one(
+        {"id": username},
+        {"$pull": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": {"id": class_['id']}}},
+        array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.name": course_unit['name']}])
+    
+    if a.modified_count > 0:
+        return True
     return False
 
 def get_schedule(username) -> List[dict]:
     return {
-        "faculties": user.users(username)["faculties"]
+        "faculties": user.users_col.find_one({"id": username}, {"faculties": 1})
     }
     schedule: List[dict] = []
     user_data = user.users(username)
