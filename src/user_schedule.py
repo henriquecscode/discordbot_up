@@ -167,9 +167,7 @@ def remove_class(username, faculty: dict, course: dict, course_unit: dict, class
     return False
 
 def get_schedule(username) -> List[dict]:
-    return {
-        "faculties": user.users_col.find_one({"id": username}, {"faculties": 1})
-    }
+    return  user.users_col.find_one({"id": username}, {"faculties": 1})
     schedule: List[dict] = []
     user_data = user.users(username)
     for user_faculty in user_data["faculties"]:
