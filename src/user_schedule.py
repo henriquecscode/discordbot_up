@@ -26,8 +26,8 @@ def add_course(username, faculty: dict, course: Course):
     
     course_data = {
     "id": course.id,
-    "name": course.acronym,
-    "full_name": course.name,
+    "acronym": course.acronym,
+    "name": course.name,
     "course_units": []
     }
     

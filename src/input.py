@@ -290,7 +290,7 @@ def process_manage_faculty_courses(message, public, command):
         # List current faculty courses
         courses = user_schedule.get_faculty_courses(message.author.id, faculty)
         title = f"Escolher curso de {faculty['name']} para editar horario"
-        options = [f"{course['name']}: {course['full_name'].strip()}" for course in courses]
+        options = [f"{course['acronym']}: {course['name'].strip()}" for course in courses]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_course_edit_schedule_interaction(message.author.id, faculty, courses)
         return [formated_output, False]
@@ -356,7 +356,7 @@ def process_edit_course(message, public, command):
         return [formated_output, False]
 
     course: dict = courses[option_chosen-1]
-    title = f"Escolheste o curso {course['name']}: {course['full_name'].strip()}"
+    title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
     options = ["Adicionar cadeira", "Editar horario de cadeira"]
     formated_output = format_output_with_cancel(title, options)
     user_schedule.add_current_course_course_unit_interaction(message.author.id, faculty, course)
@@ -374,7 +374,7 @@ def process_manage_course_course_units(message, public, command):
         course_unit_year_course_units: List[Object] = api.get_course_course_units(course['id'])
         course_unit_years: List[CourseUnitYear] = [object_.CourseUnitYear for object_ in course_unit_year_course_units]
         course_units: List[CourseUnit] = [object_.CourseUnit for object_ in course_unit_year_course_units]
-        title = f"Cadeiras disponiveis em {course['name']}: {course['full_name'].strip()}"
+        title = f"Cadeiras disponiveis em {course['acronym']}: {course['name'].strip()}"
         options = [f"{course_unit.name.strip()}: {course_unit_year.course_unit_year} year;  {course_unit.semester} Semester ({course_unit.year})" for course_unit_year, course_unit in zip(course_unit_years, course_units)]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_add_class_unit_interaction(message.author.id, faculty, course, course_unit_year_course_units)
@@ -418,7 +418,7 @@ def process_choose_course_unit_to_add(message, public, command):
             pre_title = f"You already added {course_unit.acronym}: {course_unit.name.strip()}"
     else:
         pre_title = ""
-    title = f"Escolheste o curso {course['name']}: {course['full_name'].strip()}"
+    title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
     options = ["Adicionar cadeira", "Editar horario de cadeira"]
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
     user_schedule.add_current_course_course_unit_interaction(message.author.id, faculty, course)
@@ -434,7 +434,7 @@ def process_choose_course_unit_to_edit(message, public, command):
     course_unit_year_course_units: List[dict] = data['course_units']
 
     if option_chosen == 0:
-        title = f"Escolheste o curso {course['name']}: {course['full_name'].strip()}"
+        title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
         options = ["Adicionar cadeira", "Editar horario de cadeira"]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_course_course_unit_interaction(message.author.id, faculty, course)
@@ -444,7 +444,7 @@ def process_choose_course_unit_to_edit(message, public, command):
         return ["Option not recognized", False]
     
     course_unit: dict = course_unit_year_course_units[option_chosen-1]
-    title = f"Escolheste a cadeira {course_unit['name']}: {course_unit['acronym'].strip()}"
+    title = f"Escolheste a cadeira {course_unit['acronym']}: {course_unit['name'].strip()}"
     options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
     formated_output = format_output_with_cancel(title, options)
     user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
@@ -461,7 +461,7 @@ def process_manage_course_unit_classes(message, public, command):
     course_unit: dict = data['course_unit']
     if option_chosen == 1:
         classes_: List[Schedule] = api.get_course_unit_schedules(course_unit['id'])
-        title = f"Adicionar aula a {course_unit['name']}: {course_unit['acronym'].strip()}"
+        title = f"Adicionar aula a {course_unit['acronym']}: {course_unit['name'].strip()}"
         options = [f"{class_.class_name}({class_.lesson_type}): {format_day(class_.day)} {format_time(class_.start_time)}-{format_time(class_.start_time + class_.duration)} in {class_.location}" for class_ in classes_]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_choose_class_to_add_interaction(message.author.id, faculty, course, course_unit, classes_)
@@ -470,15 +470,15 @@ def process_manage_course_unit_classes(message, public, command):
         classes_: List[dict] = user_schedule.get_course_unit_classes(message.author.id, faculty, course, course_unit)
         options = [f"{class_['name']}({class_['lesson_type']}): {format_day(class_['day'])} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}" for class_ in classes_]
         if option_chosen == 2:
-            title = f"Horarios de aula de {course_unit['name']}: {course_unit['acronym'].strip()}"
+            title = f"Horarios de aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
             user_schedule.add_choose_class_to_view_interaction(message.author.id, faculty, course, course_unit, classes_)
         elif option_chosen == 3:
-            title = f"Remover aula de {course_unit['name']}: {course_unit['acronym'].strip()}"
+            title = f"Remover aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
             user_schedule.add_choose_class_to_remove_interaction(message.author.id, faculty, course, course_unit, classes_)
         formated_output = format_output_with_cancel(title, options)
         return [formated_output, False]
     elif option_chosen == 0:
-        title = f"Escolheste o curso {course['name']}: {course['full_name'].strip()}"
+        title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
         options = ["Adicionar cadeira", "Editar horario de cadeira"]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_course_course_unit_interaction(message.author.id, faculty, course)
@@ -508,7 +508,7 @@ def process_add_class(message, public, command):
     else:
         pre_title = ""
 
-    title = f"Escolheste a cadeira {course_unit_year_course_unit['name']}: {course_unit_year_course_unit['acronym'].strip()}"
+    title = f"Escolheste a cadeira {course_unit_year_course_unit['acronym']}: {course_unit_year_course_unit['name'].strip()}"
     options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
     user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit_year_course_unit)
@@ -522,7 +522,7 @@ def process_view_class(message, public, command):
         faculty: dict = data['faculty']
         course: dict = data['course']
         course_unit: dict = data['course_unit']
-        title = f"Escolheste a cadeira {course_unit['name']}: {course_unit['acronym'].strip()}"
+        title = f"Escolheste a cadeira {course_unit['acronym']}: {course_unit['name'].strip()}"
         options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
@@ -542,7 +542,7 @@ def process_remove_class(message, public, command):
     classes_ : List[dict]= data['classes']
     if option_chosen == 0:
         options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
-        title = f"Escolheste a cadeira {course_unit['name']}: {course_unit['acronym'].strip()}"
+        title = f"Escolheste a cadeira {course_unit['acronym']}: {course_unit['name'].strip()}"
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
         return [formated_output, False]
@@ -553,12 +553,12 @@ def process_remove_class(message, public, command):
     class_: dict = classes_[option_chosen-1]
     removed = user_schedule.remove_class(message.author.id, faculty, course, course_unit, class_)
     if removed:
-        pre_title = f"Removed {class_['name']}: {class_['lesson_type']}"
+        pre_title = f"Removed {class_['name']}: {class_['lesson_type']}\n\n"
     else:
-        pre_title = f"You already removed {class_['name']}: {class_['lesson_type']}"
-    title = f"Escolheste a cadeira {course_unit['name']}: {course_unit['acronym'].strip()}"
+        pre_title = ""
+    title = f"Escolheste a cadeira {course_unit['acronym']}: {course_unit['name'].strip()}"
     options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
-    formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
+    formated_output = format_output_with_cancel(pre_title + title, options)
     user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
     return [formated_output, False]
 
