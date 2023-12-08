@@ -312,6 +312,13 @@ def process_add_course(message, public, command):
     courses: List[Course] = data['courses']
     if option_chosen < 0 or option_chosen > len(courses):
         return ["Option not recognized", False]
+    
+    if option_chosen == 0:
+        title = f"Escolheste a faculdade {faculty['name']}: {faculty['full_name'].strip()}"
+        options = ["Adicionar curso", "Editar horario de curso"]
+        formated_output = format_output_with_cancel(title, options)
+        user_schedule.add_current_faculty_course_interaction(message.author.id, faculty)
+        return [formated_output, False]
     course: Course = courses[option_chosen-1]
     added = user_schedule.add_course(message.author.id, faculty, course)
 
