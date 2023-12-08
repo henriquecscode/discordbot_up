@@ -4,3 +4,5 @@
 **__pycache__/
 src.egg-info
 users.json
+.DS_STore
+mongodb/data
