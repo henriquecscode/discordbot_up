@@ -252,9 +252,7 @@ def process_view_schedule(message):
     if len(schedules_classes) == 0:
         schedules_classes = None
     return_string = ""
-    if schedules_classes is None:
-        return_message = ["You have no schedule", False]
-    else:
+    if schedules_classes is not None:
         for faculty in schedules_classes:
             return_string += f"{faculty} "
             if len(schedules_classes[faculty]) > 1:
@@ -278,10 +276,12 @@ def process_view_schedule(message):
                     for class_ in schedules_classes[faculty][course][course_unit]:
                         class_ident = course_unit_ident + "\t"
                         return_string += f"{class_ident}{class_}\n"
-                
 
-
-        return_message = [return_string, False]
+    return_string += "Manually added schedules:\n"
+    manual_schedules = user_schedule.get_manual_schedules(message.author.id)
+    for manual_schedule in manual_schedules:
+        return_string += format_manual_schedule(manual_schedule) + "\n"
+    return_message = [return_string, False]
     return return_message
 
 def process_add_schedule(message, public, command):
@@ -873,6 +873,7 @@ def format_manual_schedule(schedule: dict):
     
     day_name, day_gender = get_day_from_day_index(day)
     day_string = f"n{day_gender} {day_name}"
+    start_time_str = format_time(start_time)
 
-    schedule_string = f"{institution} de {class_} ({lesson_type}): {day_string} às {start_time} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
+    schedule_string = f"{institution} de {class_} ({lesson_type}): {day_string} às {start_time_str} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
     return schedule_string
