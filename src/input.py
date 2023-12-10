@@ -114,7 +114,7 @@ def process_input(message, public):
 
     elif command == "!add_schedule":
         title = "Add schedule"
-        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente"]
+        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_schedule_interaction(message.author.id)
         new_interaction = True
@@ -204,6 +204,9 @@ def process_input(message, public):
         
         elif interaction == Interaction.CONFIRM_ADD_CLASS:
             return process_confirm_add_class(message, public, command)
+        
+        elif interaction == Interaction.REMOVE_SCHEDULE_MANUALLY:
+            return process_remove_schedule_manually(message, public, command)
 
     return ["Unknown command", False]
 
@@ -312,6 +315,13 @@ def process_add_schedule(message, public, command):
         user_schedule.add_schedule_manually_interaction(message.author.id)
         message = title + '\n' + content + '\n' + cancel
         return [message, False]
+    elif option_chosen == 5:
+        title = "Remover horario manualmente"
+        schedules: List[dict] = user_schedule.get_manual_schedules(message.author.id)
+        options = [format_manual_schedule(schedule) for schedule in schedules]
+        formated_output = format_output_with_cancel(title, options)
+        user_schedule.add_remove_schedule_manually_interaction(message.author.id, schedules)
+        return [formated_output, False]
     elif option_chosen == 0:
         user.cancel_current_interaction(message.author.id)
         return ["Canceled", False]
@@ -336,7 +346,8 @@ def process_choose_faculty_to_add(message, public, command):
     else:
         pre_title = ""
     title = "Add schedule"
-    options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
+    options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
+
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
     user_schedule.add_current_schedule_interaction(message.author.id)
     return [formated_output, False]
@@ -352,7 +363,8 @@ def process_choose_faculty_to_edit(message, public, command):
     
     if option_chosen == 0:
         title = "Add schedule"
-        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
+        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
+
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_schedule_interaction(message.author.id)
         return [formated_output, False]
@@ -387,7 +399,8 @@ def process_manage_faculty_courses(message, public, command):
         return [formated_output, False]
     elif option_chosen == 0:
         title = "Add schedule"
-        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
+        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
+
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_schedule_interaction(message.author.id)
         return [formated_output, False]
@@ -666,12 +679,13 @@ def process_add_schedule_manually(message, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == 0:
         title = "Add schedule"
-        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente"]
+        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_schedule_interaction(message.author.id)
         return [formated_output, False]
     
     content = message.content
+    content = content[1:]
 
     content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
     optional_content_items = ["local"]    
@@ -717,11 +731,17 @@ def process_add_schedule_manually(message, public, command):
     if not (day >= 1 and day <= 7):
         return get_wrong_format_message("Day must be between 1 (domingo) and 7 (sabado)")
 
-    day_name, day_gender = get_day_from_day_index(day)
-    day_string = f"n{day_gender} {day_name}"
-    confirmation_message = f"Adicionar aula de {institution} de {course_unit} ({lesson_type}) {day_string} às {start_time} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
-    if location is not None:
-        confirmation_message += f" em {location}"
+    data = {
+        "institution": institution,
+        "course_unit": course_unit,
+        "lesson_type": lesson_type,
+        "day": day,
+        "start_time": start_time,
+        "duration": duration,
+        "location": location
+    }
+    schedule_string = format_manual_schedule(data)
+    confirmation_message = f"Adicionar aula de {schedule_string}"
     
     return_message = confirmation_message + "\n1: Confirmar\n0: Cancelar"
     user_schedule.add_confirm_add_class_interaction(message.author.id, institution, course_unit, lesson_type, day, start_time, duration, location)
@@ -744,9 +764,9 @@ def process_confirm_add_class(message, public, command):
         message = title + '\n' + content + '\n' + cancel
         return [message, False]
     elif option_chosen == 1:
-        data = user.get_current_interaction_data(message.author.id)
+        data: dict = user.get_current_interaction_data(message.author.id)
         institution = data['institution']
-        course_unit = data['course_unit']
+        course_unit = data['name']
         lesson_type = data['lesson_type']
         day = data['day']
         start_time = data['start_time']
@@ -756,7 +776,8 @@ def process_confirm_add_class(message, public, command):
 
         day_name, day_gender = get_day_from_day_index(day)
         day_string = f"n{day_gender} {day_name}"
-        pretitle = f"Added  de {institution} de {course_unit} ({lesson_type}) {day_string} às {start_time} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
+        schedule_string = format_manual_schedule(data)
+        pretitle = f"Added  {schedule_string}"
         title = "Adicionar horario manualmente"
         
         content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
@@ -769,6 +790,28 @@ def process_confirm_add_class(message, public, command):
         user_schedule.add_schedule_manually_interaction(message.author.id)
         message = pretitle + '\n' + title + '\n' + content + '\n' + cancel
         return [message, False]
+def process_remove_schedule_manually(message, public, command):
+    option_chosen = get_option_chosen(command)
+    if option_chosen == -1:
+        return ["Option not recognized", False]
+    schedules: List[dict] = user.get_current_interaction_data(message.author.id)
+    if option_chosen < 0 or option_chosen > len(schedules):
+        return ["Option not recognized", False]
+
+    if option_chosen != 0:
+        schedule: dict = schedules[option_chosen-1]
+        removed = user_schedule.remove_manual_schedule(message.author.id, schedule)
+        if removed:
+            schedule_string = format_manual_schedule(schedule)
+            pre_title = f"Removed {schedule_string}"
+    else:
+        pre_title = "" 
+    title = "Add schedule"
+    options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
+    formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
+    user_schedule.add_current_schedule_interaction(message.author.id)
+    return [formated_output, False]
+
 
 def get_option_chosen(command):
     option_chosen = command[1:].strip()
@@ -813,3 +856,19 @@ def get_date(date):
         except ValueError:
             pass
     return ["failed", None]
+
+
+def format_manual_schedule(schedule: dict):
+    institution = schedule['institution']
+    course_unit = schedule['name']
+    lesson_type = schedule['lesson_type']
+    day = schedule['day']
+    start_time = schedule['start_time']
+    duration = schedule['duration']
+    location = schedule['location']
+    
+    day_name, day_gender = get_day_from_day_index(day)
+    day_string = f"n{day_gender} {day_name}"
+
+    schedule_string = f"{institution} de {course_unit} ({lesson_type}): {day_string} às {start_time} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
+    return schedule_string

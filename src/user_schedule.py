@@ -157,12 +157,12 @@ def get_course_unit_classes(username, faculty: dict, course: dict, course_unit: 
 
 
 def remove_class(username, faculty: dict, course: dict, course_unit: dict, class_: dict):
-    a : pymongo.results.UpdateResult = user.users_col.update_one(
+    update_result : pymongo.results.UpdateResult = user.users_col.update_one(
         {"id": username},
         {"$pull": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": {"id": class_['id']}}},
         array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.name": course_unit['name'], "courseunit.year" : course_unit['year']}])
     
-    if a.modified_count > 0:
+    if update_result.modified_count > 0:
         return True
     return False
 
@@ -179,7 +179,7 @@ def get_schedule(username) -> List[dict]:
 
 def add_manual_schedule(usernames, institution, course_unit, lesson_type, day, start_time, duration, location):
     class_data = {
-        institution: institution,
+        "institution": institution,
         "name": course_unit,
         "lesson_type": lesson_type,
         "day": day,
@@ -188,6 +188,24 @@ def add_manual_schedule(usernames, institution, course_unit, lesson_type, day, s
         "location": location,
     }
     user.users_col.update_one({"id": usernames}, {"$push": {"data.schedule": class_data}})
+
+def get_manual_schedules(username) -> List[dict]:
+    manual_schedules = user.users_col.aggregate([
+    { "$match": { "id": username } },
+    { "$unwind": "$data.schedule"},
+    { "$replaceRoot": { "newRoot": "$data.schedule" } },
+    ])
+    manual_schedules = list(manual_schedules)
+    return manual_schedules
+
+def remove_manual_schedule(username, schedule: dict) -> bool:
+    update_result : pymongo.results.UpdateResult = user.users_col.update_one(
+        {"id": username},
+        {"$pull": {"data.schedule": {"name": schedule['name'], "lesson_type": schedule['lesson_type'], "day": schedule['day'], "start_time": schedule['start_time'], "duration": schedule['duration'], "location": schedule['location']}}})
+    
+    if update_result.modified_count > 0:
+        return True
+    return False
 
 def add_current_schedule_interaction(username):
     user.user_interactions[username]['current_interaction'] = Interaction.ADD_SCHEDULE
@@ -293,3 +311,6 @@ def add_confirm_add_class_interaction(username, institution, course_unit, lesson
         "location": location
     }
 
+def add_remove_schedule_manually_interaction(username, schedules: List[dict]):
+    user.user_interactions[username]['current_interaction'] = Interaction.REMOVE_SCHEDULE_MANUALLY
+    user.user_interactions[username]['current_interaction_data'] = schedules
