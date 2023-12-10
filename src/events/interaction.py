@@ -19,3 +19,5 @@ class Interaction(Enum):
     ADD_SCHEDULE_MANUALLY = "add_schedule_manually"
     CONFIRM_ADD_CLASS = "confirm_add_class"
     REMOVE_SCHEDULE_MANUALLY = "remove_schedule_manually"
+
+    SCHEDULE_MEETING = "schedule_meeting"

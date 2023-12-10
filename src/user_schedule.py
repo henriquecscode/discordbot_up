@@ -245,6 +245,31 @@ def remove_manual_schedule(username, schedule: dict) -> bool:
         return True
     return False
 
+
+def get_joint_schedule(username) -> List[dict]:
+    return user.users_col.aggregate([
+        { "$match": { "id": username } },
+        { "$unwind": "$data.joint_schedule"},
+        { "$replaceRoot": { "newRoot": "$data.joint_schedule" } },
+    ])
+
+
+def get_week_occupancy_from_classes(classes: List[dict]):
+    class_occupancies = []
+    for class_ in classes:
+        slot = get_slot_from_time_info(class_['day'], class_['start_time'], class_['duration'])
+        class_occupancies.append(slot)
+    return class_occupancies
+    
+def get_slot_from_time_info(day, start_time, duration):
+    start_time = get_week_minutes(day, start_time)
+    end_time = get_week_minutes(day, start_time + duration)
+    return (start_time, end_time)
+
+def get_week_minutes(day, minutes):
+    week_minutes = (day-1) * 24 * 60 + minutes
+    return week_minutes
+
 def add_current_schedule_interaction(username):
     user.user_interactions[username]['current_interaction'] = Interaction.ADD_SCHEDULE
     user.user_interactions[username]['current_interaction_data'] = None
@@ -352,3 +377,8 @@ def add_confirm_add_class_interaction(username, institution, class_, lesson_type
 def add_remove_schedule_manually_interaction(username, schedules: List[dict]):
     user.user_interactions[username]['current_interaction'] = Interaction.REMOVE_SCHEDULE_MANUALLY
     user.user_interactions[username]['current_interaction_data'] = schedules
+
+
+def add_schedule_meeting_interaction(username, to_meet_usernames):
+    user.user_interactions[username]['current_interaction'] = Interaction.SCHEDULE_MEETING
+    user.user_interactions[username]['current_interaction_data'] = to_meet_usernames
