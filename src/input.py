@@ -114,7 +114,7 @@ def process_input(message, public):
 
     elif command == "!add_schedule":
         title = "Add schedule"
-        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso"]
+        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente"]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_current_schedule_interaction(message.author.id)
         new_interaction = True
@@ -198,6 +198,12 @@ def process_input(message, public):
         
         elif interaction == Interaction.REMOVE_CLASS:
             return process_remove_class(message, public, command)
+        
+        elif interaction == Interaction.ADD_SCHEDULE_MANUALLY:
+            return process_add_schedule_manually(message, public, command)
+        
+        elif interaction == Interaction.CONFIRM_ADD_CLASS:
+            return process_confirm_add_class(message, public, command)
 
     return ["Unknown command", False]
 
@@ -290,6 +296,22 @@ def process_add_schedule(message, public, command):
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_choose_faculty_to_edit_schedule_interaction(message.author.id, faculties)
         return [formated_output, False]
+
+    elif option_chosen == 3:
+        return ["Not implemented yet. Choose another option", False]
+    elif option_chosen == 4:
+        title = "Adicionar horario manualmente"
+        
+        content_items = ["descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+        optional_content_items = ["local"]
+            
+        content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
+        content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
+
+        cancel = "0: Cancel"
+        user_schedule.add_schedule_manually_interaction(message.author.id)
+        message = title + '\n' + content + '\n' + cancel
+        return [message, False]
     elif option_chosen == 0:
         user.cancel_current_interaction(message.author.id)
         return ["Canceled", False]
@@ -631,6 +653,123 @@ def process_remove_class(message, public, command):
     user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
     return [formated_output, False]
 
+def process_add_schedule_manually(message, public, command):
+    def get_wrong_format_message(wrong_format_message = "Wrong format"):
+        content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+        optional_content_items = ["local"]
+        error_message = wrong_format_message
+        content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
+        content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
+        cancel = "0: Cancel"
+        message = error_message + '\n' + content + '\n' + cancel
+        return [message, False]
+    option_chosen = get_option_chosen(command)
+    if option_chosen == 0:
+        title = "Add schedule"
+        options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente"]
+        formated_output = format_output_with_cancel(title, options)
+        user_schedule.add_current_schedule_interaction(message.author.id)
+        return [formated_output, False]
+    
+    content = message.content
+
+    content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+    optional_content_items = ["local"]    
+
+    parameters = content.split(";")
+    parameters = list(map(lambda x: x.strip(), parameters))
+    # Remove empty strings
+    parameters = list(filter(lambda x: x != "", parameters))
+    data = parameters
+    # <faculdade>; <curso>; <cadeira>; <tipo de aula>; <dia (de 1 -domingo - a 7 - sabado -)>; <hora inicio>; <duracao>; [<local> -opcional]\nExemplo: FEUP MIEIC PLOG TP 2 14:00 2:00 B207
+    if len(data) < len (content_items):
+        return get_wrong_format_message(f"Must have at least {len(content_items)} parameters")
+    if len(data) > len(content_items) + len(optional_content_items):
+        return get_wrong_format_message(f"Must have at most {len(content_items) + len(optional_content_items)} parameters")
+
+    
+    institution = data[0]
+    course_unit = data[1]
+    lesson_type = data[2]
+    day = data[3]
+    start_time = data[4]
+    duration = data[5]
+    if len(data) == 7:
+        location = data[6]
+    else:
+        location = None
+
+    if not day.isdigit() or not duration.isdigit():
+        return get_wrong_format_message("Day and duration must be numbers")
+    else:
+        day = int(day)
+        duration = int(duration)
+
+    pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
+    if not (re.match(pattern,  start_time)):
+        return get_wrong_format_message("Start time must be in the format HH:mm")
+    else:
+        hours, minutes = start_time.split(":")
+        hours = int(hours)
+        minutes = int(minutes)
+        start_time = hours*60 + minutes
+
+    if not (day >= 1 and day <= 7):
+        return get_wrong_format_message("Day must be between 1 (domingo) and 7 (sabado)")
+
+    day_name, day_gender = get_day_from_day_index(day)
+    day_string = f"n{day_gender} {day_name}"
+    confirmation_message = f"Adicionar aula de {institution} de {course_unit} ({lesson_type}) {day_string} às {start_time} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
+    if location is not None:
+        confirmation_message += f" em {location}"
+    
+    return_message = confirmation_message + "\n1: Confirmar\n0: Cancelar"
+    user_schedule.add_confirm_add_class_interaction(message.author.id, institution, course_unit, lesson_type, day, start_time, duration, location)
+
+    return [return_message, False]
+
+def process_confirm_add_class(message, public, command):
+    option_chosen = get_option_chosen(command)
+    if option_chosen == 0:
+        title = "Adicionar horario manualmente"
+        
+        content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
+        optional_content_items = ["local"]
+            
+        content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
+        content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
+
+        cancel = "0: Cancel"
+        user_schedule.add_schedule_manually_interaction(message.author.id)
+        message = title + '\n' + content + '\n' + cancel
+        return [message, False]
+    elif option_chosen == 1:
+        data = user.get_current_interaction_data(message.author.id)
+        institution = data['institution']
+        course_unit = data['course_unit']
+        lesson_type = data['lesson_type']
+        day = data['day']
+        start_time = data['start_time']
+        duration = data['duration']
+        location = data['location']
+        user_schedule.add_manual_schedule(message.author.id, institution, course_unit, lesson_type, day, start_time, duration, location)
+
+        day_name, day_gender = get_day_from_day_index(day)
+        day_string = f"n{day_gender} {day_name}"
+        pretitle = f"Added  de {institution} de {course_unit} ({lesson_type}) {day_string} às {start_time} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
+        title = "Adicionar horario manualmente"
+        
+        content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
+        optional_content_items = ["local"]
+            
+        content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
+        content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
+
+        cancel = "0: Cancel"
+        user_schedule.add_schedule_manually_interaction(message.author.id)
+        message = pretitle + '\n' + title + '\n' + content + '\n' + cancel
+        return [message, False]
+
 def get_option_chosen(command):
     option_chosen = command[1:].strip()
     try:
@@ -653,6 +792,11 @@ def format_day(day_index):
     days = ["2ª", "3ª", "4ª", "5ª", "6ª"]
     day_str = f"{days[day_index-1]} feira"
     return day_str
+
+def get_day_from_day_index(day_index: int):
+    days = ["Domingo", "2ª feira", "3ª feira", "4ª feira", "5ª feira", "6ª feira", "Sábado"]
+    gender = ["o", "a", "a", "a", "a", "a", "o"]
+    return days[day_index-1], gender[day_index-1]
 
 def format_time(start_time):
     hours = int(start_time//60)

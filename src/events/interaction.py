@@ -14,3 +14,7 @@ class Interaction(Enum):
     ADD_CLASS = "add_class"
     VIEW_CLASS = "edit_class"
     REMOVE_CLASS = "remove_class"
+
+
+    ADD_SCHEDULE_MANUALLY = "add_schedule_manually"
+    CONFIRM_ADD_CLASS = "confirm_add_class"

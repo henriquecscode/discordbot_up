@@ -177,6 +177,18 @@ def get_schedule(username) -> List[dict]:
                     schedule.append(user_class)
     return schedule
 
+def add_manual_schedule(usernames, institution, course_unit, lesson_type, day, start_time, duration, location):
+    class_data = {
+        institution: institution,
+        "name": course_unit,
+        "lesson_type": lesson_type,
+        "day": day,
+        "start_time": start_time,
+        "duration": duration,
+        "location": location,
+    }
+    user.users_col.update_one({"id": usernames}, {"$push": {"data.schedule": class_data}})
+
 def add_current_schedule_interaction(username):
     user.user_interactions[username]['current_interaction'] = Interaction.ADD_SCHEDULE
     user.user_interactions[username]['current_interaction_data'] = None
@@ -264,3 +276,20 @@ def add_choose_class_to_remove_interaction(username, faculty: dict, course: dict
         "course_unit": course_unit,
         "classes": classes
     }
+
+def add_schedule_manually_interaction(username):
+    user.user_interactions[username]['current_interaction'] = Interaction.ADD_SCHEDULE_MANUALLY
+    user.user_interactions[username]['current_interaction_data'] = None
+
+def add_confirm_add_class_interaction(username, institution, course_unit, lesson_type, day, start_time, duration, location):
+    user.user_interactions[username]['current_interaction'] = Interaction.CONFIRM_ADD_CLASS
+    user.user_interactions[username]['current_interaction_data'] = {
+        "institution": institution,
+        "course_unit": course_unit,
+        "lesson_type": lesson_type,
+        "day": day,
+        "start_time": start_time,
+        "duration": duration,
+        "location": location
+    }
+
