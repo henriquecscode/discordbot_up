@@ -305,7 +305,7 @@ def process_add_schedule(message, public, command):
     elif option_chosen == 4:
         title = "Adicionar horario manualmente"
         
-        content_items = ["descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+        content_items = ["descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
         optional_content_items = ["local"]
             
         content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
@@ -668,7 +668,7 @@ def process_remove_class(message, public, command):
 
 def process_add_schedule_manually(message, public, command):
     def get_wrong_format_message(wrong_format_message = "Wrong format"):
-        content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+        content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
         optional_content_items = ["local"]
         error_message = wrong_format_message
         content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
@@ -687,7 +687,7 @@ def process_add_schedule_manually(message, public, command):
     content = message.content
     content = content[1:]
 
-    content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+    content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
     optional_content_items = ["local"]    
 
     parameters = content.split(";")
@@ -703,7 +703,7 @@ def process_add_schedule_manually(message, public, command):
 
     
     institution = data[0]
-    course_unit = data[1]
+    class_ = data[1]
     lesson_type = data[2]
     day = data[3]
     start_time = data[4]
@@ -733,7 +733,7 @@ def process_add_schedule_manually(message, public, command):
 
     data = {
         "institution": institution,
-        "course_unit": course_unit,
+        "class": class_,
         "lesson_type": lesson_type,
         "day": day,
         "start_time": start_time,
@@ -744,7 +744,7 @@ def process_add_schedule_manually(message, public, command):
     confirmation_message = f"Adicionar aula de {schedule_string}"
     
     return_message = confirmation_message + "\n1: Confirmar\n0: Cancelar"
-    user_schedule.add_confirm_add_class_interaction(message.author.id, institution, course_unit, lesson_type, day, start_time, duration, location)
+    user_schedule.add_confirm_add_class_interaction(message.author.id, institution, class_, lesson_type, day, start_time, duration, location)
 
     return [return_message, False]
 
@@ -753,7 +753,7 @@ def process_confirm_add_class(message, public, command):
     if option_chosen == 0:
         title = "Adicionar horario manualmente"
         
-        content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
+        content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
         optional_content_items = ["local"]
             
         content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
@@ -766,13 +766,13 @@ def process_confirm_add_class(message, public, command):
     elif option_chosen == 1:
         data: dict = user.get_current_interaction_data(message.author.id)
         institution = data['institution']
-        course_unit = data['name']
+        class_ = data['class']
         lesson_type = data['lesson_type']
         day = data['day']
         start_time = data['start_time']
         duration = data['duration']
         location = data['location']
-        user_schedule.add_manual_schedule(message.author.id, institution, course_unit, lesson_type, day, start_time, duration, location)
+        user_schedule.add_manual_schedule(message.author.id, institution, class_, lesson_type, day, start_time, duration, location)
 
         day_name, day_gender = get_day_from_day_index(day)
         day_string = f"n{day_gender} {day_name}"
@@ -780,7 +780,7 @@ def process_confirm_add_class(message, public, command):
         pretitle = f"Added  {schedule_string}"
         title = "Adicionar horario manualmente"
         
-        content_items = ["<descricao de instituicao (faculdade, curso)", "cadeira", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
+        content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
         optional_content_items = ["local"]
             
         content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
@@ -860,7 +860,7 @@ def get_date(date):
 
 def format_manual_schedule(schedule: dict):
     institution = schedule['institution']
-    course_unit = schedule['name']
+    class_ = schedule['class']
     lesson_type = schedule['lesson_type']
     day = schedule['day']
     start_time = schedule['start_time']
@@ -870,5 +870,5 @@ def format_manual_schedule(schedule: dict):
     day_name, day_gender = get_day_from_day_index(day)
     day_string = f"n{day_gender} {day_name}"
 
-    schedule_string = f"{institution} de {course_unit} ({lesson_type}): {day_string} às {start_time} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
+    schedule_string = f"{institution} de {class_} ({lesson_type}): {day_string} às {start_time} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
     return schedule_string

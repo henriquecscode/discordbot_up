@@ -201,17 +201,20 @@ def get_schedule(username) -> List[dict]:
                     schedule.append(user_class)
     return schedule
 
-def add_manual_schedule(usernames, institution, course_unit, lesson_type, day, start_time, duration, location):
+def add_manual_schedule(usernames, institution, class_, lesson_type, day, start_time, duration, location):
     class_data = {
         "institution": institution,
-        "name": course_unit,
+        "class": class_,
         "lesson_type": lesson_type,
         "day": day,
         "start_time": start_time,
         "duration": duration,
         "location": location,
+        "professor": ""
     }
     user.users_col.update_one({"id": usernames}, {"$push": {"data.schedule": class_data}})
+    user.users_col.update_one({"id": usernames}, {"$push": {"data.joint_schedule": {"type": "added_manual_schedule", "class": class_data}}})
+    pass
 
 def get_manual_schedules(username) -> List[dict]:
     manual_schedules = user.users_col.aggregate([
@@ -225,8 +228,19 @@ def get_manual_schedules(username) -> List[dict]:
 def remove_manual_schedule(username, schedule: dict) -> bool:
     update_result : pymongo.results.UpdateResult = user.users_col.update_one(
         {"id": username},
-        {"$pull": {"data.schedule": {"name": schedule['name'], "lesson_type": schedule['lesson_type'], "day": schedule['day'], "start_time": schedule['start_time'], "duration": schedule['duration'], "location": schedule['location']}}})
+        {"$pull": {"data.schedule": {"class": schedule['class'], "lesson_type": schedule['lesson_type'], "day": schedule['day'], "start_time": schedule['start_time'], "duration": schedule['duration'], "location": schedule['location']}}})
     
+    update_joint_results = user.users_col.update_one(
+        {"id": username},
+        {"$pull": {"data.joint_schedule": {
+            "type": "added_manual_schedule",
+            "class.class": schedule['class'],
+            "class.lesson_type": schedule['lesson_type'],
+            "class.day": schedule['day'],
+            "class.start_time": schedule['start_time'],
+            "class.duration": schedule['duration'],
+            "class.location": schedule['location']}}}
+    )
     if update_result.modified_count > 0:
         return True
     return False
@@ -323,11 +337,11 @@ def add_schedule_manually_interaction(username):
     user.user_interactions[username]['current_interaction'] = Interaction.ADD_SCHEDULE_MANUALLY
     user.user_interactions[username]['current_interaction_data'] = None
 
-def add_confirm_add_class_interaction(username, institution, course_unit, lesson_type, day, start_time, duration, location):
+def add_confirm_add_class_interaction(username, institution, class_, lesson_type, day, start_time, duration, location):
     user.user_interactions[username]['current_interaction'] = Interaction.CONFIRM_ADD_CLASS
     user.user_interactions[username]['current_interaction_data'] = {
         "institution": institution,
-        "course_unit": course_unit,
+        "class": class_,
         "lesson_type": lesson_type,
         "day": day,
         "start_time": start_time,
