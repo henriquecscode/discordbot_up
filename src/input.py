@@ -2,7 +2,7 @@ import user
 import user_schedule
 from events.interaction import Interaction
 from database.database_api import api
-from typing import List
+from typing import List, Tuple
 from database.dbs.schema import *
 from datetime import datetime
 import re
@@ -67,7 +67,8 @@ def process_input(message, public):
         return_message = [user.add_password(message.author.id, message.content.split()[1]), True]
 
     elif command == "!help":
-        return_message = ["Available commands:\n!add_friend\n!friend_requests\n!accept\n!friends_list\n!remove_friend\n!add_session_cookie\n!add_event\n!events\n!add_schedule\n!view_schedule", False]
+        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule, !schedule_meeting"]
+        return_message = ["Available commands:\n" + '\n'.join(commands), False]
 
     elif command == "!add_event":
         if len(message.content.split()) < 3:
@@ -146,7 +147,34 @@ def process_input(message, public):
             output = f"Command executed as {id}:\n" + output
             return_message = [output, public]
 
+    elif command == "!schedule_meeting":
 
+        if False: # DEBUG
+            mentions = message.mentions
+            id_mentions = [mention.id for mention in mentions]
+        else:
+            # regex to match <@12345678910>
+            pattern = r'<@([0-9]+)>'
+            # Capture pattern
+            # Get the int in <@237236210823593984>
+            all_mentions =  re.findall(pattern, message.content) 
+            id_mentions = [int(mention) for mention in all_mentions]
+
+        if len(id_mentions) == 0:
+            return_message = ["You have to mention at least one person. Ex.: !schedule_meeting @someone", False]
+
+        else:
+            title = "Schedule meeting"
+            content = "Choose the day and time of meeting.\n" 
+            content_items = ["dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+            content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items))
+            cancel = "0: Cancel"
+            message_string = title + '\n' + content + '\n' + cancel
+            user_schedule.add_schedule_meeting_interaction(message.author.id, id_mentions)
+            new_interaction = True
+            return_message = [message_string, False]
+
+        
     if return_message is not None:
         if not new_interaction:
             user.cancel_current_interaction(message.author.id)
@@ -207,6 +235,9 @@ def process_input(message, public):
         
         elif interaction == Interaction.REMOVE_SCHEDULE_MANUALLY:
             return process_remove_schedule_manually(message, public, command)
+        
+        elif interaction == Interaction.SCHEDULE_MEETING:
+            return process_schedule_meeting(message, public, command)
 
     else:
         if command == "!cancel":
@@ -671,15 +702,7 @@ def process_remove_class(message, public, command):
     return [formated_output, False]
 
 def process_add_schedule_manually(message, public, command):
-    def get_wrong_format_message(wrong_format_message = "Wrong format"):
-        content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
-        optional_content_items = ["local"]
-        error_message = wrong_format_message
-        content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
-        content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
-        cancel = "0: Cancel"
-        message = error_message + '\n' + content + '\n' + cancel
-        return [message, False]
+
     option_chosen = get_option_chosen(command)
     if option_chosen == 0:
         title = "Add schedule"
@@ -701,16 +724,16 @@ def process_add_schedule_manually(message, public, command):
     data = parameters
     # <faculdade>; <curso>; <cadeira>; <tipo de aula>; <dia (de 1 -domingo - a 7 - sabado -)>; <hora inicio>; <duracao>; [<local> -opcional]\nExemplo: FEUP MIEIC PLOG TP 2 14:00 2:00 B207
     if len(data) < len (content_items):
-        return get_wrong_format_message(f"Must have at least {len(content_items)} parameters")
+        return [get_wrong_format_message(f"Must have at least {len(content_items)} parameters"), False]
     if len(data) > len(content_items) + len(optional_content_items):
-        return get_wrong_format_message(f"Must have at most {len(content_items) + len(optional_content_items)} parameters")
+        return [get_wrong_format_message(f"Must have at most {len(content_items) + len(optional_content_items)} parameters"), False]
 
     
     institution = data[0]
     class_ = data[1]
     lesson_type = data[2]
     day = data[3]
-    start_time = data[4]
+    start_time_input = data[4]
     duration = data[5]
     if len(data) == 7:
         location = data[6]
@@ -723,14 +746,9 @@ def process_add_schedule_manually(message, public, command):
         day = int(day)
         duration = int(duration)
 
-    pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
-    if not (re.match(pattern,  start_time)):
+    start_time = get_time_from_formated_time_input(start_time_input)
+    if start_time is None:
         return get_wrong_format_message("Start time must be in the format HH:mm")
-    else:
-        hours, minutes = start_time.split(":")
-        hours = int(hours)
-        minutes = int(minutes)
-        start_time = hours*60 + minutes
 
     if not (day >= 1 and day <= 7):
         return get_wrong_format_message("Day must be between 1 (domingo) and 7 (sabado)")
@@ -794,6 +812,7 @@ def process_confirm_add_class(message, public, command):
         user_schedule.add_schedule_manually_interaction(message.author.id)
         message = pretitle + '\n' + title + '\n' + content + '\n' + cancel
         return [message, False]
+    
 def process_remove_schedule_manually(message, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
@@ -816,6 +835,60 @@ def process_remove_schedule_manually(message, public, command):
     user_schedule.add_current_schedule_interaction(message.author.id)
     return [formated_output, False]
 
+def process_schedule_meeting(message, public, command):
+    option_chosen = get_option_chosen(command)
+
+    if option_chosen == 0:
+        return ["Canceled", False]
+    
+    
+    content = message[1:]
+    content = content.split(";")
+    content = list(filter(lambda x: x != ""), content)
+    content = list(map(str.strip, content)) # Check if this works
+
+# TODO
+    day = content[0]
+    input_time = content[1]
+    duration = content[2]
+
+    if not day.isdigit() or not duration.isdigit():
+        return get_wrong_format_message("Day and duration must be numbers")
+    else:
+        day = int(day)
+        duration = int(duration)
+
+    start_time = get_time_from_formated_time_input(input_time)
+    if start_time is None:
+        return get_wrong_format_message("Start time must be in the format HH:mm")
+
+    if not (day >= 1 and day <= 7):
+        return get_wrong_format_message("Day must be between 1 (domingo) and 7 (sabado)")
+
+    meeting_slot = user_schedule.get_slot_from_time_info(day, start_time, duration)
+    to_meet_usernames = user.get_current_interaction_data(message.author.id)
+     
+    #  Grab our schedule
+    self_schedule = user_schedule.get_joint_schedule(message.author.id)
+    self_minutes_slots = get_schedule_minutes_slots(self_schedule)
+
+    intersect = get_intersect_week_occupancy_slot(self_minutes_slots, meeting_slot)
+
+    if intersect is not None:
+        return ["You have a class at that time", False]
+
+    for to_meet_username in to_meet_usernames:
+        to_meed_schedule = user_schedule.get_joint_schedule(to_meet_username)
+        to_meet_minutes_slots = get_schedule_minutes_slots(self_schedule)
+
+        intersect = get_intersect_week_occupancy_slot(to_meet_minutes_slots, meeting_slot)
+
+        if intersect is not None:
+            return [f"<@{to_meet_username}> has a class at that time", False]
+
+    
+    return [str(self_minutes_slots), False]
+    #  Grab every persons schedule
 
 def get_option_chosen(command):
     option_chosen = command[1:].strip()
@@ -851,6 +924,17 @@ def format_time(start_time):
     start_time_str = f"{hours:02d}:{minutes:02d}"
     return start_time_str
 
+def get_time_from_formated_time_input(time_input: str) -> None | int:
+    pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
+    if not (re.match(pattern,  time_input)):
+        return None
+    else:
+        hours, minutes = time_input.split(":")
+        hours = int(hours)
+        minutes = int(minutes)
+        time_int = hours*60 + minutes
+        return time_int
+
 def get_date(date):
     formats = ['%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y']
     for fmt in formats:
@@ -874,6 +958,80 @@ def format_manual_schedule(schedule: dict):
     day_name, day_gender = get_day_from_day_index(day)
     day_string = f"n{day_gender} {day_name}"
     start_time_str = format_time(start_time)
-
-    schedule_string = f"{institution} de {class_} ({lesson_type}): {day_string} às {start_time_str} com duracao de {duration} minutos{'' if location is None else f' em {location}'}"
+    end_time_str = format_time(start_time + duration)
+    schedule_string = f"{institution} de {class_} ({lesson_type}): {day_string} às {start_time_str}-{end_time_str} {'' if location is None else f' em {location}'}"
     return schedule_string
+
+def get_wrong_format_message(wrong_format_message = "Wrong format"):
+    content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+    optional_content_items = ["local"]
+    error_message = wrong_format_message
+    content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
+    content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
+    cancel = "0: Cancel"
+    message = error_message + '\n' + content + '\n' + cancel
+    return message
+
+
+def get_schedule_minutes_slots(schedule: List[dict]):
+
+    self_classes = [class_['class'] for class_ in schedule]
+    week_occupied = user_schedule.get_week_occupancy_from_classes(self_classes)
+    print(week_occupied)
+   
+    non_week_crossover_occupancy = get_non_week_crossover_occupancy(week_occupied)
+    print (non_week_crossover_occupancy)
+    contiguous_week_occupied = get_contiguous_week_occupancy(non_week_crossover_occupancy)
+
+    print(contiguous_week_occupied)
+
+def get_non_week_crossover_occupancy(week_occupancy: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    week_occupied_sorted = sorted(week_occupancy, key=lambda x: x[1])
+    unfold_midnight_saturday_edge_case = []
+    week_maximum_time = 7 * 24 * 60 # 10080
+    for i in range(len(week_occupied_sorted)-1, -1, -1):
+        start_time, end_time = week_occupied_sorted[i]
+        if end_time > week_maximum_time: # Went past the week maximum minutes, and started on 0 (for the first day)
+            unfold_midnight_saturday_edge_case.append((0, end_time - week_maximum_time))
+            week_occupied_sorted[i] = (start_time, week_maximum_time)
+        else:
+            break
+    non_week_crossover_occupancy = unfold_midnight_saturday_edge_case + week_occupied_sorted
+    return non_week_crossover_occupancy
+
+def get_contiguous_week_occupancy(week_occupancy: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    if len(week_occupancy) == 0:
+        return []
+    if len(week_occupancy) == 1:
+        return week_occupancy
+    
+    ordered_week_occupancy = sorted(week_occupancy, key = lambda x: x[0])
+    contiguous_week_occupied = []
+    prev_start, prev_end = ordered_week_occupancy[0]
+    for i in range(1, len(ordered_week_occupancy)):
+        this_start, this_end = ordered_week_occupancy[i]
+
+        if this_start <= prev_end:
+             if this_end > prev_end:
+                prev_end = this_end
+        else:
+            contiguous_week_occupied.append((prev_start, prev_end))
+            prev_start, prev_end = this_start, this_end
+    contiguous_week_occupied.append((prev_start, prev_end))
+    return contiguous_week_occupied
+
+def get_intersect_week_occupancy_slot(week_occupancy: List[Tuple[int, int]], target_slot: Tuple[int, int]) -> Tuple[int, int] | None:
+    target_start_time, target_end_time = target_slot
+    for slot in week_occupancy:
+        slot_start_time, slot_end_time = slot
+
+        if target_start_time >= slot_start_time and target_start_time < slot_end_time:
+            # Target start time is inside one of the slots
+            return slot
+        elif target_end_time > slot_start_time and target_end_time <= slot_end_time:
+            # Target end time is inside one of the slots
+            return slot
+        elif target_start_time <= slot_start_time and target_end_time >= slot_end_time:
+            # Target slot contains one of the slots
+            return slot
+    return None
