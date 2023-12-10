@@ -98,18 +98,18 @@ def process_input(message, public):
             else:
                 return [user.create_event(message.author.name, date_obj[1], event_name, hours, minutes), False]
             
-    if command == "!events":
-            user.update_events(message.author.name)
-            if len(message.content.split()) > 1:
-                if message.content.split()[1] == "delete":
-                    return [user.delete_event(message.author.name, int(message.content.split()[2]) - 1), False]
+    elif command == "!events":
+        user.update_events(message.author.name)
+        if len(message.content.split()) > 1:
+            if message.content.split()[1] == "delete":
+                return_message = [user.delete_event(message.author.name, int(message.content.split()[2]) - 1), False]
+        else:
+            title = "Your future events:"
+            options = user.get_events_list(message.author.name)
+            if len(options) > 0:
+                return_message = [format_output(title, options) + "\n\nIn order to delete events do !events delete #", False]
             else:
-                title = "Your future events:"
-                options = user.get_events_list(message.author.name)
-                if len(options) > 0:
-                    return [format_output(title, options) + "\n\nIn order to delete events do !events delete #", False]
-                else:
-                    return "This user has no events!"    
+                return_message = ["This user has no events!"    , False]
     
 
     elif command == "!add_schedule":
