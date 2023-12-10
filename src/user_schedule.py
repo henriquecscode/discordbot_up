@@ -84,8 +84,7 @@ def add_course_unit(username, faculty: dict, course: dict, course_unit_course_un
         "year": course_unit_year.course_unit_year,
         "enroll_year": course_unit.year,
         "semester": course_unit.semester,
-        "classes": [],
-        "schedule": []
+        "classes": []
     }
     user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units": course_unit_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}])
     return True
@@ -134,6 +133,18 @@ def add_class(username, faculty: dict, course: dict, course_unit: dict, schedule
         "professor": schedule.professor_sigarra_id,
     }
     user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": class_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.id": course_unit['id'], "courseunit.year" : course_unit['year']}])
+
+    del faculty['courses']
+    del course['course_units']
+    del course_unit['schedule']
+    joint_schedule_data = {
+        "type": "added_class",
+        "faculty": faculty,
+        "course": course,
+        "course_unit": course_unit,
+        "class": class_data,  
+    }
+    user.users_col.update_one({"id": username}, {"$push": {"data.joint_schedule": joint_schedule_data}})
     return True
 
 def get_course_unit_classes(username, faculty: dict, course: dict, course_unit: dict) -> List[dict]:
@@ -157,11 +168,24 @@ def get_course_unit_classes(username, faculty: dict, course: dict, course_unit: 
 
 
 def remove_class(username, faculty: dict, course: dict, course_unit: dict, class_: dict):
+    # Remove from classes
     update_result : pymongo.results.UpdateResult = user.users_col.update_one(
         {"id": username},
         {"$pull": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": {"id": class_['id']}}},
         array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.name": course_unit['name'], "courseunit.year" : course_unit['year']}])
-    
+
+    # Remove from join schedule
+    update_joint_results = user.users_col.update_one(
+        {"id": username},
+        {"$pull": {"data.joint_schedule": {
+            "type": "added_class",
+            "faculty.name": faculty['name'],
+            "course.acronym": course['acronym'],
+            "course_unit.name": course_unit['name'],
+            "course_unit.year": course_unit['year'],
+            "class.id": class_['id']}}}
+    )
+
     if update_result.modified_count > 0:
         return True
     return False

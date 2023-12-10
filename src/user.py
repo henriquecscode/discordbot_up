@@ -36,6 +36,7 @@ def create_user(user):
         "password": None,
         "data": {
             "schedule": [],
+            "joint_schedule": [],
             "incoming_friend_invites": [],
             "friends": [],
             "events": [],
