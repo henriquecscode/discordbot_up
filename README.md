@@ -17,6 +17,7 @@ Will install the project as `src` so that relative paths can be used
 Watch out if you have any other `src` dependencies you might have used for other projects.
 
 ## .env
+You must have a `.env` file located in the `src` folder with the following variables:
 ```
 TOKEN=<discord token provided by discord.com>
 USER=<personal sigarra up>
@@ -40,3 +41,8 @@ The databased used is called `up` and thehe collection used is named `users`. Se
 
 `db.users.find()` to see the users collection
 
+## Running the bot
+
+Make sure you have followed the steps above
+
+From the root folder, run `python src/main.py` to start the bot
