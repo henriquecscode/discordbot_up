@@ -208,6 +208,10 @@ def process_input(message, public):
         elif interaction == Interaction.REMOVE_SCHEDULE_MANUALLY:
             return process_remove_schedule_manually(message, public, command)
 
+    else:
+        if command == "!cancel":
+            return ["You don't have any interaction to cancel", False]
+        
     return ["Unknown command", False]
 
 def process_view_schedule(message):
