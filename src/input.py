@@ -272,7 +272,7 @@ def process_view_schedule(author_id: int):
                 schedules_course[course_unit_string] = schedules_course.get(course_unit_string, [])
                 classes = course_unit['classes']
                 for class_ in classes:
-                    class_string = f"{class_['name']}({class_['lesson_type']}): {format_day(class_['day'])} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}"
+                    class_string = f"{class_['name']}({class_['lesson_type']}): {get_day_from_day_index(class_['day'])[0]} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}"
                     schedules_classes[faculty_string][course_string][course_unit_string].append(class_string)
 
                 if len(schedules_classes[faculty_string][course_string][course_unit_string]) == 0:
@@ -604,13 +604,14 @@ def process_manage_course_unit_classes(author_id: int, public, command):
     if option_chosen == 1:
         classes_: List[Schedule] = api.get_course_unit_schedules(course_unit['id'])
         title = f"Adicionar aula a {course_unit['acronym']}: {course_unit['name'].strip()}"
-        options = [f"{class_.class_name}({class_.lesson_type}): {format_day(class_.day)} {format_time(class_.start_time)}-{format_time(class_.start_time + class_.duration)} in {class_.location}" for class_ in classes_]
+        options = [f"{class_.class_name}({class_.lesson_type}): {get_day_from_day_index(class_.day)[0]} {format_time(class_.start_time)}-{format_time(class_.start_time + class_.duration)} in {class_.location}" for class_ in classes_]
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_choose_class_to_add_interaction(author_id, faculty, course, course_unit, classes_)
         return [formated_output, False]
     elif option_chosen == 2 or option_chosen == 3:
         classes_: List[dict] = user_schedule.get_course_unit_classes(author_id, faculty, course, course_unit)
 
+        options = [f"{class_['name']}({class_['lesson_type']}): {get_day_from_day_index(class_['day'])[0]} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}" for class_ in classes_]
         if option_chosen == 2:
             title = f"Horarios de aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
             user_schedule.add_choose_class_to_view_interaction(author_id, faculty, course, course_unit, classes_)
@@ -911,12 +912,7 @@ def format_output_with_cancel(title, options):
     output = title + '\n' + '\n'.join(numbered_options) + '\n' + "0: Cancel"
     return output
 
-def format_day(day_index):
-    days = ["2ª", "3ª", "4ª", "5ª", "6ª"]
-    day_str = f"{days[day_index-1]} feira"
-    return day_str
-
-def get_day_from_day_index(day_index: int):
+def get_day_from_day_index(day_index: int) -> Tuple[str, str]:
     days = ["Domingo", "2ª feira", "3ª feira", "4ª feira", "5ª feira", "6ª feira", "Sábado"]
     gender = ["o", "a", "a", "a", "a", "a", "o"]
     return days[day_index-1], gender[day_index-1]
