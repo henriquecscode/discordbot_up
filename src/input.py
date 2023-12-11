@@ -9,9 +9,13 @@ import re
 
 AUTHOR_IDS = [211486403874258944, 237236210823593984]
 
-def process_input(message, public):
+def process_input(message, public, id_overwride = None):
     #Create an account for the author of the message and all those mentioned, podemos ter de mudar quando formos buscar dados ao sigarra
-    user.account_checker(message.author.id)
+    if id_overwride is not None:
+        author_id = id_overwride
+    else:
+        author_id = message.author.id
+    user.account_checker(author_id)
     for util in message.mentions:
         user.account_checker(util.id)
 
@@ -28,12 +32,12 @@ def process_input(message, public):
             return_message = [user.send_friend_request(message.author.id, message.mentions[0].id, message.mentions[0].name), False]
 
     elif command == "!friend_requests":
-        return_message = [user.check_friend_requests(message.author.id), False]
+        return_message = [user.check_friend_requests(author_id), False]
     
     elif command == "!accept":
         if len(message.content.split()) < 2:
             return_message = ["You have to specify which friend request to accept. Ex.: !accept 1", False]
-        return_message = [user.accept_friend_request(message.author.id, int(message.content.split()[1])), False]
+        return_message = [user.accept_friend_request(author_id, int(message.content.split()[1])), False]
     
     elif command == "!remove_friend":
         if len(message.content.split()) < 2:
@@ -44,28 +48,28 @@ def process_input(message, public):
         return_message = [user.remove_friend(message.author.id, message.mentions[0].id, message.mentions[0].name), False]
     
     elif command == "!friends_list":
-        return_message = [user.show_friends_list(message.author.id), False]
+        return_message = [user.show_friends_list(author_id), False]
     
     elif command == "!add_session_cookie":
         if public:
             return_message = ["This is sensitive private information! Please only use this command on private DM's!", True]
         if len(message.content.split()) < 2:
             return_message = ["You have to input your session cookie. Ex.: !add_session_cookie <cookie>", False]
-        return_message = [user.add_cookie(message.author.id, int(message.content.split()[1])), True]
+        return_message = [user.add_cookie(author_id, int(message.content.split()[1])), True]
     
     elif command == "!add_username":
         if public:
             return_message = ["This is sensitive private information! Please only use this command on private DM's!", True]
         if len(message.content.split()) < 2:
                 return_message = ["You have to input your username. Ex.: !add_username <username>", False]
-        return_message = [user.add_username(message.author.id, message.content.split()[1]), True]
+        return_message = [user.add_username(author_id, message.content.split()[1]), True]
 
     elif command == "!add_password":
         if public:
             return_message = ["This is sensitive private information! Please only use this command on private DM's!", True]
         if len(message.content.split()) < 2:
                 return_message = ["You have to input your password. Ex.: !add_password <password>", False]
-        return_message = [user.add_password(message.author.id, message.content.split()[1]), True]
+        return_message = [user.add_password(author_id, message.content.split()[1]), True]
 
     elif command == "!help":
         commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule, !schedule_meeting"]
@@ -118,15 +122,15 @@ def process_input(message, public):
         title = "Add schedule"
         options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_schedule_interaction(message.author.id)
+        user_schedule.add_current_schedule_interaction(author_id)
         new_interaction = True
         return_message = [formated_output, False]
 
     elif command == "!view_schedule":
-        return_message = process_view_schedule(message)
+        return_message = process_view_schedule(author_id)
 
     elif command == "!_author":
-        if message.author.id not in AUTHOR_IDS:
+        if author_id not in AUTHOR_IDS:
             return_message = ["Admin only command", False]
         elif len(message.content.split()) < 2:
             return_message = ["Author commands must have another command", False]
@@ -139,12 +143,11 @@ def process_input(message, public):
                 id = int(id)
                 new_message_content = ' '.join(split_message[2:])
             except:
-                id = message.author.id
+                id = author_id
                 new_message_content = ' '.join(split_message[1:])
             new_message = message
             new_message.content = new_message_content
-            new_message.author._user.id = id
-            output, public  = process_input(new_message, public)
+            output, public  = process_input(message, public, id)
             output = f"Command executed as {id}:\n" + output
             return_message = [output, public]
 
@@ -171,74 +174,74 @@ def process_input(message, public):
             content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items))
             cancel = "0: Cancel"
             message_string = title + '\n' + content + '\n' + cancel
-            user_schedule.add_schedule_meeting_interaction(message.author.id, id_mentions)
+            user_schedule.add_schedule_meeting_interaction(author_id, id_mentions)
             new_interaction = True
             return_message = [message_string, False]
 
         
     if return_message is not None:
         if not new_interaction:
-            user.cancel_current_interaction(message.author.id)
+            user.cancel_current_interaction(author_id)
         return return_message
     
 
     # Continuing interaction
-    if user.has_current_interaction(message.author.id):        
+    if user.has_current_interaction(author_id):        
         if command == "!cancel":
-            user.cancel_current_interaction(message.author.id)
+            user.cancel_current_interaction(author_id)
             return ["Canceled", False]
         
-        interaction = user.get_current_interaction(message.author.id)
+        interaction = user.get_current_interaction(author_id)
         if interaction == Interaction.ADD_SCHEDULE:
-            return process_add_schedule(message, public, command)
+            return process_add_schedule(author_id, public, command)
 
         elif interaction == Interaction.CHOOSE_FACULTY_TO_ADD:
-            return process_choose_faculty_to_add(message, public, command)
+            return process_choose_faculty_to_add(author_id, public, command)
 
         elif interaction == Interaction.CHOOSE_FACULTY_TO_EDIT:
-            return process_choose_faculty_to_edit(message, public, command)
+            return process_choose_faculty_to_edit(author_id, public, command)
         
         elif interaction == Interaction.MANAGE_FACULTY:
-            return process_manage_faculty_courses(message, public, command)
+            return process_manage_faculty_courses(author_id, public, command)
         
         elif interaction == Interaction.ADD_COURSE:
-            return process_add_course(message, public, command)
+            return process_add_course(author_id, public, command)
         
         elif interaction == Interaction.EDIT_COURSE:
-            return process_edit_course(message, public, command)
+            return process_edit_course(author_id, public, command)
         
         elif interaction == Interaction.MANAGE_COURSE:
-            return process_manage_course_course_units(message, public, command)
+            return process_manage_course_course_units(author_id, public, command)
         
         elif interaction == Interaction.ADD_COURSE_UNIT:
-            return process_choose_course_unit_to_add(message, public, command)
+            return process_choose_course_unit_to_add(author_id, public, command)
         
         elif interaction == Interaction.EDIT_COURSE_UNIT:
-            return process_choose_course_unit_to_edit(message, public, command)
+            return process_choose_course_unit_to_edit(author_id, public, command)
         
         elif interaction == Interaction.MANAGE_COURSE_UNIT:
-            return process_manage_course_unit_classes(message, public, command)
+            return process_manage_course_unit_classes(author_id, public, command)
         
         elif interaction == Interaction.ADD_CLASS:
-            return process_add_class(message, public, command)
+            return process_add_class(author_id, public, command)
         
         elif interaction == Interaction.VIEW_CLASS:
-            return process_view_class(message, public, command)
+            return process_view_class(author_id, public, command)
         
         elif interaction == Interaction.REMOVE_CLASS:
-            return process_remove_class(message, public, command)
+            return process_remove_class(author_id, public, command)
         
         elif interaction == Interaction.ADD_SCHEDULE_MANUALLY:
-            return process_add_schedule_manually(message, public, command)
+            return process_add_schedule_manually(message, author_id, public, command)
         
         elif interaction == Interaction.CONFIRM_ADD_CLASS:
-            return process_confirm_add_class(message, public, command)
+            return process_confirm_add_class(author_id, public, command)
         
         elif interaction == Interaction.REMOVE_SCHEDULE_MANUALLY:
-            return process_remove_schedule_manually(message, public, command)
+            return process_remove_schedule_manually(author_id, public, command)
         
         elif interaction == Interaction.SCHEDULE_MEETING:
-            return process_schedule_meeting(message, public, command)
+            return process_schedule_meeting(message, author_id, public, command)
 
     else:
         if command == "!cancel":
@@ -246,8 +249,8 @@ def process_input(message, public):
         
     return ["Unknown command", False]
 
-def process_view_schedule(message):
-    schedule : List[dict] = user_schedule.get_schedule(message.author.id)
+def process_view_schedule(author_id: int):
+    schedule : List[dict] = user_schedule.get_schedule(author_id)
     has_faculties = False
     has_courses = False
     has_course_units = False
@@ -310,13 +313,13 @@ def process_view_schedule(message):
                         return_string += f"{class_ident}{class_}\n"
 
     return_string += "Manually added schedules:\n"
-    manual_schedules = user_schedule.get_manual_schedules(message.author.id)
+    manual_schedules = user_schedule.get_manual_schedules(author_id)
     for manual_schedule in manual_schedules:
         return_string += format_manual_schedule(manual_schedule) + "\n"
     return_message = [return_string, False]
     return return_message
 
-def process_add_schedule(message, public, command):
+def process_add_schedule(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
@@ -326,14 +329,14 @@ def process_add_schedule(message, public, command):
         title = "Faculdades disponiveis"
         options = [f"{faculty.acronym}: {faculty.name.strip()}" for faculty in faculties]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_choose_faculty_to_add_schedule_interaction(message.author.id, faculties)
+        user_schedule.add_choose_faculty_to_add_schedule_interaction(author_id, faculties)
         return [formated_output, False]
     elif option_chosen == 2:
-        faculties: List[dict] = user_schedule.get_faculties(message.author.id)
+        faculties: List[dict] = user_schedule.get_faculties(author_id)
         title = "Inscrito em faculdades"
         options = [f"{faculty['name']}: {faculty['full_name'].strip()}" for faculty in faculties]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_choose_faculty_to_edit_schedule_interaction(message.author.id, faculties)
+        user_schedule.add_choose_faculty_to_edit_schedule_interaction(author_id, faculties)
         return [formated_output, False]
 
     elif option_chosen == 3:
@@ -348,31 +351,31 @@ def process_add_schedule(message, public, command):
         content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
 
         cancel = "0: Cancel"
-        user_schedule.add_schedule_manually_interaction(message.author.id)
+        user_schedule.add_schedule_manually_interaction(author_id)
         message = title + '\n' + content + '\n' + cancel
         return [message, False]
     elif option_chosen == 5:
         title = "Remover horario manualmente"
-        schedules: List[dict] = user_schedule.get_manual_schedules(message.author.id)
+        schedules: List[dict] = user_schedule.get_manual_schedules(author_id)
         options = [format_manual_schedule(schedule) for schedule in schedules]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_remove_schedule_manually_interaction(message.author.id, schedules)
+        user_schedule.add_remove_schedule_manually_interaction(author_id, schedules)
         return [formated_output, False]
     elif option_chosen == 0:
-        user.cancel_current_interaction(message.author.id)
+        user.cancel_current_interaction(author_id)
         return ["Canceled", False]
     return ["Option not recognized", False]
 
-def process_choose_faculty_to_add(message, public, command):
+def process_choose_faculty_to_add(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
     
-    faculties = user.get_current_interaction_data(message.author.id)
+    faculties = user.get_current_interaction_data(author_id)
     if option_chosen < 0 or option_chosen > len(faculties):
         return ["Option not recognized", False]
     faculty: List[Faculty] = faculties[option_chosen-1]
-    added = user_schedule.add_faculty(message.author.id, faculty)
+    added = user_schedule.add_faculty(author_id, faculty)
 
     if option_chosen != 0:
         if added:
@@ -385,15 +388,15 @@ def process_choose_faculty_to_add(message, public, command):
     options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
 
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
-    user_schedule.add_current_schedule_interaction(message.author.id)
+    user_schedule.add_current_schedule_interaction(author_id)
     return [formated_output, False]
 
-def process_choose_faculty_to_edit(message, public, command):
+def process_choose_faculty_to_edit(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
     
-    faculties = user.get_current_interaction_data(message.author.id)
+    faculties = user.get_current_interaction_data(author_id)
     if option_chosen < 0 or option_chosen > len(faculties):
         return ["Option not recognized", False]
     
@@ -402,52 +405,52 @@ def process_choose_faculty_to_edit(message, public, command):
         options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
 
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_schedule_interaction(message.author.id)
+        user_schedule.add_current_schedule_interaction(author_id)
         return [formated_output, False]
     
     faculty: dict = faculties[option_chosen-1]
     title = f"Escolheste a faculdade {faculty['name']}: {faculty['full_name'].strip()}"
     options = ["Adicionar curso", "Editar horario de curso"]
     formated_output = format_output_with_cancel(title, options)
-    user_schedule.add_current_faculty_course_interaction(message.author.id, faculty)
+    user_schedule.add_current_faculty_course_interaction(author_id, faculty)
     return [formated_output, False]
 
-def process_manage_faculty_courses(message, public, command):
+def process_manage_faculty_courses(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
     
-    faculty: dict = user.get_current_interaction_data(message.author.id)
+    faculty: dict = user.get_current_interaction_data(author_id)
     if option_chosen == 1:
         courses: Course = api.get_faculty_courses(faculty['name'])
         title = f"Cursos disponiveis em {faculty['name']}: {faculty['full_name'].strip()}"
         options = [f"{course.name.strip()}" for course in courses]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_course_interaction(message.author.id, faculty, courses)
+        user_schedule.add_course_interaction(author_id, faculty, courses)
         return [formated_output, False]
     elif option_chosen == 2:
         # List current faculty courses
-        courses = user_schedule.get_faculty_courses(message.author.id, faculty)
+        courses = user_schedule.get_faculty_courses(author_id, faculty)
         title = f"Escolher curso de {faculty['name']} para editar horario"
         options = [f"{course['acronym']}: {course['name'].strip()}" for course in courses]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_course_edit_schedule_interaction(message.author.id, faculty, courses)
+        user_schedule.add_course_edit_schedule_interaction(author_id, faculty, courses)
         return [formated_output, False]
     elif option_chosen == 0:
         title = "Add schedule"
         options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
 
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_schedule_interaction(message.author.id)
+        user_schedule.add_current_schedule_interaction(author_id)
         return [formated_output, False]
     return ["Option not recognized", False]
 
-def process_add_course(message, public, command):
+def process_add_course(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
     
-    data = user.get_current_interaction_data(message.author.id)
+    data = user.get_current_interaction_data(author_id)
     faculty: dict = data['faculty']
     courses: List[Course] = data['courses']
     if option_chosen < 0 or option_chosen > len(courses):
@@ -457,10 +460,10 @@ def process_add_course(message, public, command):
         title = f"Escolheste a faculdade {faculty['name']}: {faculty['full_name'].strip()}"
         options = ["Adicionar curso", "Editar horario de curso"]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_faculty_course_interaction(message.author.id, faculty)
+        user_schedule.add_current_faculty_course_interaction(author_id, faculty)
         return [formated_output, False]
     course: Course = courses[option_chosen-1]
-    added = user_schedule.add_course(message.author.id, faculty, course)
+    added = user_schedule.add_course(author_id, faculty, course)
 
     if option_chosen != 0:
         if added:
@@ -473,16 +476,16 @@ def process_add_course(message, public, command):
     title = f"Escolheste a faculdade {faculty['name']}: {faculty['full_name'].strip()}"
     options = ["Adicionar curso", "Editar horario de curso"]
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
-    user_schedule.add_current_faculty_course_interaction(message.author.id, faculty)
+    user_schedule.add_current_faculty_course_interaction(author_id, faculty)
     return [formated_output, False]
 
-def process_edit_course(message, public, command):
+def process_edit_course(author_id: int, public, command):
 
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
     
-    data = user.get_current_interaction_data(message.author.id)
+    data = user.get_current_interaction_data(author_id)
     courses: List[dict] = data['courses']
     faculty: dict = data['faculty']
     if option_chosen < 0 or option_chosen > len(courses):
@@ -492,21 +495,21 @@ def process_edit_course(message, public, command):
         title = f"Escolheste a faculdade {faculty['name']}: {faculty['full_name'].strip()}"
         options = ["Adicionar curso", "Editar horario de curso"]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_faculty_course_interaction(message.author.id, faculty)
+        user_schedule.add_current_faculty_course_interaction(author_id, faculty)
         return [formated_output, False]
 
     course: dict = courses[option_chosen-1]
     title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
     options = ["Adicionar cadeira", "Editar horario de cadeira"]
     formated_output = format_output_with_cancel(title, options)
-    user_schedule.add_current_course_course_unit_interaction(message.author.id, faculty, course)
+    user_schedule.add_current_course_course_unit_interaction(author_id, faculty, course)
     return [formated_output, False]
 
-def process_manage_course_course_units(message, public, command):
+def process_manage_course_course_units(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
-    data = user.get_current_interaction_data(message.author.id)
+    data = user.get_current_interaction_data(author_id)
     faculty: dict = data['faculty']
     course: dict = data['course']
 
@@ -517,29 +520,29 @@ def process_manage_course_course_units(message, public, command):
         title = f"Cadeiras disponiveis em {course['acronym']}: {course['name'].strip()}"
         options = [f"{course_unit.name.strip()}: {course_unit_year.course_unit_year} year;  {course_unit.semester} Semester ({course_unit.year})" for course_unit_year, course_unit in zip(course_unit_years, course_units)]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_add_class_unit_interaction(message.author.id, faculty, course, course_unit_year_course_units)
+        user_schedule.add_add_class_unit_interaction(author_id, faculty, course, course_unit_year_course_units)
         return [formated_output, False]
     elif option_chosen == 2:
-        course_unit_year_course_units: List[dict] = user_schedule.get_course_course_units(message.author.id, faculty, course)
+        course_unit_year_course_units: List[dict] = user_schedule.get_course_course_units(author_id, faculty, course)
         title = f"Escolher cadeira de {course['name']} para editar horario"
         options = [f"{course_unit['name'].strip()}: {course_unit['year']} year;  {course_unit['semester']} Semester" for course_unit in course_unit_year_course_units]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_edit_class_unit_interaction(message.author.id, faculty, course, course_unit_year_course_units)
+        user_schedule.add_edit_class_unit_interaction(author_id, faculty, course, course_unit_year_course_units)
         return [formated_output, False]
     elif option_chosen == 0:
         title = f"Escolheste a faculdade {faculty['name']}: {faculty['full_name'].strip()}"
         options = ["Adicionar curso", "Editar horario de curso"]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_faculty_course_interaction(message.author.id, faculty)
+        user_schedule.add_current_faculty_course_interaction(author_id, faculty)
         return [formated_output, False]
 
     return ["Option not recognized", False]
 
-def process_choose_course_unit_to_add(message, public, command):
+def process_choose_course_unit_to_add(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
-    data = user.get_current_interaction_data(message.author.id)
+    data = user.get_current_interaction_data(author_id)
     faculty: dict = data['faculty']
     course: dict = data['course']
     course_unit_year_course_units: List[Object] = data['course_units']
@@ -550,7 +553,7 @@ def process_choose_course_unit_to_add(message, public, command):
         course_unit_year_course_unit: Object = course_unit_year_course_units[option_chosen-1]
         course_unit: CourseUnit = course_unit_year_course_unit.CourseUnit
         course_unit_year: CourseUnitYear = course_unit_year_course_unit.CourseUnitYear
-        added = user_schedule.add_course_unit(message.author.id, faculty, course, course_unit_year_course_unit)
+        added = user_schedule.add_course_unit(author_id, faculty, course, course_unit_year_course_unit)
 
         if added:
             pre_title = f"Added {course_unit.acronym}: {course_unit.name.strip()}"
@@ -561,14 +564,14 @@ def process_choose_course_unit_to_add(message, public, command):
     title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
     options = ["Adicionar cadeira", "Editar horario de cadeira"]
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
-    user_schedule.add_current_course_course_unit_interaction(message.author.id, faculty, course)
+    user_schedule.add_current_course_course_unit_interaction(author_id, faculty, course)
     return [formated_output, False]
 
-def process_choose_course_unit_to_edit(message, public, command):
+def process_choose_course_unit_to_edit(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
-    data = user.get_current_interaction_data(message.author.id)
+    data = user.get_current_interaction_data(author_id)
     faculty: dict = data['faculty']
     course: dict = data['course']
     course_unit_year_course_units: List[dict] = data['course_units']
@@ -577,7 +580,7 @@ def process_choose_course_unit_to_edit(message, public, command):
         title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
         options = ["Adicionar cadeira", "Editar horario de cadeira"]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_course_course_unit_interaction(message.author.id, faculty, course)
+        user_schedule.add_current_course_course_unit_interaction(author_id, faculty, course)
         return [formated_output, False]
 
     if option_chosen < 0 or option_chosen > len(course_unit_year_course_units):
@@ -587,15 +590,15 @@ def process_choose_course_unit_to_edit(message, public, command):
     title = f"Escolheste a cadeira {course_unit['acronym']}: {course_unit['name'].strip()}"
     options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
     formated_output = format_output_with_cancel(title, options)
-    user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
+    user_schedule.add_current_course_unit_class_interaction(author_id, faculty, course, course_unit)
     return [formated_output, False]
 
-def process_manage_course_unit_classes(message, public, command):
+def process_manage_course_unit_classes(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
     
-    data = user.get_current_interaction_data(message.author.id)
+    data = user.get_current_interaction_data(author_id)
     faculty: dict = data['faculty']
     course: dict = data['course']
     course_unit: dict = data['course_unit']
@@ -604,32 +607,32 @@ def process_manage_course_unit_classes(message, public, command):
         title = f"Adicionar aula a {course_unit['acronym']}: {course_unit['name'].strip()}"
         options = [f"{class_.class_name}({class_.lesson_type}): {format_day(class_.day)} {format_time(class_.start_time)}-{format_time(class_.start_time + class_.duration)} in {class_.location}" for class_ in classes_]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_choose_class_to_add_interaction(message.author.id, faculty, course, course_unit, classes_)
+        user_schedule.add_choose_class_to_add_interaction(author_id, faculty, course, course_unit, classes_)
         return [formated_output, False]
     elif option_chosen == 2 or option_chosen == 3:
-        classes_: List[dict] = user_schedule.get_course_unit_classes(message.author.id, faculty, course, course_unit)
-        options = [f"{class_['name']}({class_['lesson_type']}): {format_day(class_['day'])} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}" for class_ in classes_]
+        classes_: List[dict] = user_schedule.get_course_unit_classes(author_id, faculty, course, course_unit)
+
         if option_chosen == 2:
             title = f"Horarios de aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
-            user_schedule.add_choose_class_to_view_interaction(message.author.id, faculty, course, course_unit, classes_)
+            user_schedule.add_choose_class_to_view_interaction(author_id, faculty, course, course_unit, classes_)
         elif option_chosen == 3:
             title = f"Remover aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
-            user_schedule.add_choose_class_to_remove_interaction(message.author.id, faculty, course, course_unit, classes_)
+            user_schedule.add_choose_class_to_remove_interaction(author_id, faculty, course, course_unit, classes_)
         formated_output = format_output_with_cancel(title, options)
         return [formated_output, False]
     elif option_chosen == 0:
         title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
         options = ["Adicionar cadeira", "Editar horario de cadeira"]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_course_course_unit_interaction(message.author.id, faculty, course)
+        user_schedule.add_current_course_course_unit_interaction(author_id, faculty, course)
         return [formated_output, False]
 
-def process_add_class(message, public, command):
+def process_add_class(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
 
     if option_chosen == -1:
         return ["Option not recognized", False]
-    data = user.get_current_interaction_data(message.author.id)
+    data = user.get_current_interaction_data(author_id)
     faculty: dict = data['faculty']
     course: dict = data['course']
     course_unit_year_course_unit: dict = data['course_unit']
@@ -640,7 +643,7 @@ def process_add_class(message, public, command):
     
     if option_chosen != 0:
         class_: Schedule = classes_[option_chosen-1]
-        added = user_schedule.add_class(message.author.id, faculty, course, course_unit_year_course_unit, class_)
+        added = user_schedule.add_class(author_id, faculty, course, course_unit_year_course_unit, class_)
         if added:
             pre_title = f"Added {class_.class_name}: {class_.lesson_type}"
         else:
@@ -651,31 +654,31 @@ def process_add_class(message, public, command):
     title = f"Escolheste a cadeira {course_unit_year_course_unit['acronym']}: {course_unit_year_course_unit['name'].strip()}"
     options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
-    user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit_year_course_unit)
+    user_schedule.add_current_course_unit_class_interaction(author_id, faculty, course, course_unit_year_course_unit)
     return [formated_output, False]
 
-def process_view_class(message, public, command):
+def process_view_class(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
 
     if option_chosen == 0:
-        data = user.get_current_interaction_data(message.author.id)
+        data = user.get_current_interaction_data(author_id)
         faculty: dict = data['faculty']
         course: dict = data['course']
         course_unit: dict = data['course_unit']
         title = f"Escolheste a cadeira {course_unit['acronym']}: {course_unit['name'].strip()}"
         options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
+        user_schedule.add_current_course_unit_class_interaction(author_id, faculty, course, course_unit)
         return [formated_output, False]
     else:
         return ["Option not recognized", False]
     
-def process_remove_class(message, public, command):
+def process_remove_class(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
 
     if option_chosen == -1:
         return ["Option not recognized", False]
-    data = user.get_current_interaction_data(message.author.id)
+    data = user.get_current_interaction_data(author_id)
     faculty: dict = data['faculty']
     course: dict = data['course']
     course_unit: dict = data['course_unit']
@@ -684,14 +687,14 @@ def process_remove_class(message, public, command):
         options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
         title = f"Escolheste a cadeira {course_unit['acronym']}: {course_unit['name'].strip()}"
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
+        user_schedule.add_current_course_unit_class_interaction(author_id, faculty, course, course_unit)
         return [formated_output, False]
     
     if option_chosen < 0 or option_chosen > len(classes_):
         return ["Option not recognized", False]
     
     class_: dict = classes_[option_chosen-1]
-    removed = user_schedule.remove_class(message.author.id, faculty, course, course_unit, class_)
+    removed = user_schedule.remove_class(author_id, faculty, course, course_unit, class_)
     if removed:
         pre_title = f"Removed {class_['name']}: {class_['lesson_type']}\n\n"
     else:
@@ -699,17 +702,17 @@ def process_remove_class(message, public, command):
     title = f"Escolheste a cadeira {course_unit['acronym']}: {course_unit['name'].strip()}"
     options = ["Adicionar aula", "Ver horarios de aula", "Remover aula"]
     formated_output = format_output_with_cancel(pre_title + title, options)
-    user_schedule.add_current_course_unit_class_interaction(message.author.id, faculty, course, course_unit)
+    user_schedule.add_current_course_unit_class_interaction(author_id, faculty, course, course_unit)
     return [formated_output, False]
 
-def process_add_schedule_manually(message, public, command):
+def process_add_schedule_manually(message, author_id: int, public, command):
 
     option_chosen = get_option_chosen(command)
     if option_chosen == 0:
         title = "Add schedule"
         options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
         formated_output = format_output_with_cancel(title, options)
-        user_schedule.add_current_schedule_interaction(message.author.id)
+        user_schedule.add_current_schedule_interaction(author_id)
         return [formated_output, False]
     
     content = message.content
@@ -767,11 +770,11 @@ def process_add_schedule_manually(message, public, command):
     confirmation_message = f"Adicionar aula de {schedule_string}"
     
     return_message = confirmation_message + "\n1: Confirmar\n0: Cancelar"
-    user_schedule.add_confirm_add_class_interaction(message.author.id, institution, class_, lesson_type, day, start_time, duration, location)
+    user_schedule.add_confirm_add_class_interaction(author_id, institution, class_, lesson_type, day, start_time, duration, location)
 
     return [return_message, False]
 
-def process_confirm_add_class(message, public, command):
+def process_confirm_add_class(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == 0:
         title = "Adicionar horario manualmente"
@@ -783,11 +786,11 @@ def process_confirm_add_class(message, public, command):
         content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
 
         cancel = "0: Cancel"
-        user_schedule.add_schedule_manually_interaction(message.author.id)
-        message = title + '\n' + content + '\n' + cancel
-        return [message, False]
+        user_schedule.add_schedule_manually_interaction(author_id)
+        return_message = title + '\n' + content + '\n' + cancel
+        return [return_message, False]
     elif option_chosen == 1:
-        data: dict = user.get_current_interaction_data(message.author.id)
+        data: dict = user.get_current_interaction_data(author_id)
         institution = data['institution']
         class_ = data['class']
         lesson_type = data['lesson_type']
@@ -795,7 +798,7 @@ def process_confirm_add_class(message, public, command):
         start_time = data['start_time']
         duration = data['duration']
         location = data['location']
-        user_schedule.add_manual_schedule(message.author.id, institution, class_, lesson_type, day, start_time, duration, location)
+        user_schedule.add_manual_schedule(author_id, institution, class_, lesson_type, day, start_time, duration, location)
 
         day_name, day_gender = get_day_from_day_index(day)
         day_string = f"n{day_gender} {day_name}"
@@ -810,21 +813,21 @@ def process_confirm_add_class(message, public, command):
         content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
 
         cancel = "0: Cancel"
-        user_schedule.add_schedule_manually_interaction(message.author.id)
-        message = pretitle + '\n' + title + '\n' + content + '\n' + cancel
-        return [message, False]
+        user_schedule.add_schedule_manually_interaction(author_id)
+        return_message = pretitle + '\n' + title + '\n' + content + '\n' + cancel
+        return [return_message, False]
     
-def process_remove_schedule_manually(message, public, command):
+def process_remove_schedule_manually(author_id: int, public, command):
     option_chosen = get_option_chosen(command)
     if option_chosen == -1:
         return ["Option not recognized", False]
-    schedules: List[dict] = user.get_current_interaction_data(message.author.id)
+    schedules: List[dict] = user.get_current_interaction_data(author_id)
     if option_chosen < 0 or option_chosen > len(schedules):
         return ["Option not recognized", False]
 
     if option_chosen != 0:
         schedule: dict = schedules[option_chosen-1]
-        removed = user_schedule.remove_manual_schedule(message.author.id, schedule)
+        removed = user_schedule.remove_manual_schedule(author_id, schedule)
         if removed:
             schedule_string = format_manual_schedule(schedule)
             pre_title = f"Removed {schedule_string}"
@@ -833,10 +836,10 @@ def process_remove_schedule_manually(message, public, command):
     title = "Add schedule"
     options = ["Adicionar faculdade", "Escolher faculdade para editar horario", "Editar horario de curso", "Adicionar manualmente", "Remover horario manual"]
     formated_output = format_output_with_cancel(pre_title + '\n\n' + title, options)
-    user_schedule.add_current_schedule_interaction(message.author.id)
+    user_schedule.add_current_schedule_interaction(author_id)
     return [formated_output, False]
 
-def process_schedule_meeting(message, public, command):
+def process_schedule_meeting(message, author_id: int, public, command):
     option_chosen = get_option_chosen(command)
 
     if option_chosen == 0:
