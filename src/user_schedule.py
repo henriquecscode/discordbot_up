@@ -3,7 +3,10 @@ import user
 from events.interaction import Interaction
 from database.dbs.schema import *
 from typing import List
+import copy
 
+ADDED_SCHEDULE = "added_class"
+ADDED_MANUAL_SCHEDULE = "added_manual_schedule"
 
 def add_faculty(username, faculty: Faculty):
     for user_faculty in user.users(username)["faculties"]:
@@ -134,15 +137,24 @@ def add_class(username, faculty: dict, course: dict, course_unit: dict, schedule
     }
     user.users_col.update_one({"id": username}, {"$push": {"faculties.$[faculty].courses.$[course].course_units.$[courseunit].classes": class_data}}, array_filters=[{"faculty.name": faculty['name']}, {"course.acronym": course['acronym']}, {"courseunit.id": course_unit['id'], "courseunit.year" : course_unit['year']}])
 
+    faculty = faculty.copy()
+    course = course.copy()
+    course_unit = course_unit.copy()
+
     del faculty['courses']
     del course['course_units']
+    del course_unit['classes']
     del course_unit['schedule']
-    joint_schedule_data = {
-        "type": "added_class",
+    
+    join_schedule_data_class = {
         "faculty": faculty,
         "course": course,
         "course_unit": course_unit,
-        "class": class_data,  
+    }
+    join_schedule_data_class.update(class_data)
+    joint_schedule_data = {
+        "type": ADDED_SCHEDULE,
+        "class": join_schedule_data_class
     }
     user.users_col.update_one({"id": username}, {"$push": {"data.joint_schedule": joint_schedule_data}})
     return True
@@ -178,11 +190,11 @@ def remove_class(username, faculty: dict, course: dict, course_unit: dict, class
     update_joint_results = user.users_col.update_one(
         {"id": username},
         {"$pull": {"data.joint_schedule": {
-            "type": "added_class",
-            "faculty.name": faculty['name'],
-            "course.acronym": course['acronym'],
-            "course_unit.name": course_unit['name'],
-            "course_unit.year": course_unit['year'],
+            "type": ADDED_SCHEDULE,
+            "class.faculty.name": faculty['name'],
+            "class.course.acronym": course['acronym'],
+            "class.course_unit.name": course_unit['name'],
+            "class.course_unit.year": course_unit['year'],
             "class.id": class_['id']}}}
     )
 
@@ -213,7 +225,7 @@ def add_manual_schedule(usernames, institution, class_, lesson_type, day, start_
         "professor": ""
     }
     user.users_col.update_one({"id": usernames}, {"$push": {"data.schedule": class_data}})
-    user.users_col.update_one({"id": usernames}, {"$push": {"data.joint_schedule": {"type": "added_manual_schedule", "class": class_data}}})
+    user.users_col.update_one({"id": usernames}, {"$push": {"data.joint_schedule": {"type": ADDED_MANUAL_SCHEDULE, "class": class_data}}})
     pass
 
 def get_manual_schedules(username) -> List[dict]:
@@ -233,7 +245,7 @@ def remove_manual_schedule(username, schedule: dict) -> bool:
     update_joint_results = user.users_col.update_one(
         {"id": username},
         {"$pull": {"data.joint_schedule": {
-            "type": "added_manual_schedule",
+            "type": ADDED_MANUAL_SCHEDULE,
             "class.class": schedule['class'],
             "class.lesson_type": schedule['lesson_type'],
             "class.day": schedule['day'],
@@ -262,9 +274,9 @@ def get_week_occupancy_from_classes(classes: List[dict]):
     return class_occupancies
     
 def get_slot_from_time_info(day, start_time, duration):
-    start_time = get_week_minutes(day, start_time)
-    end_time = get_week_minutes(day, start_time + duration)
-    return (start_time, end_time)
+    slot_start_time = get_week_minutes(day, start_time)
+    slot_end_time = get_week_minutes(day, start_time + duration)
+    return (slot_start_time, slot_end_time)
 
 def get_week_minutes(day, minutes):
     week_minutes = (day-1) * 24 * 60 + minutes
