@@ -846,41 +846,64 @@ def process_schedule_meeting(message, author_id: int, public, command):
         return ["Canceled", False]
     
     
-    content = message[1:]
+    content = message.content[1:]
     content = content.split(";")
-    content = list(filter(lambda x: x != ""), content)
+    content = list(filter(lambda x: x != "", content))
     content = list(map(str.strip, content)) # Check if this works
 
-# TODO
+    if len(content) != 3:
+        return get_schedule_meeting_format_message("Must have 3 parameters")
+    
     day = content[0]
     input_time = content[1]
     duration = content[2]
 
     if not day.isdigit() or not duration.isdigit():
-        return get_wrong_format_message("Day and duration must be numbers")
+        return get_schedule_meeting_format_message("Day and duration must be numbers")
     else:
         day = int(day)
         duration = int(duration)
 
     start_time = get_time_from_formated_time_input(input_time)
     if start_time is None:
-        return get_wrong_format_message("Start time must be in the format HH:mm")
+        return [get_schedule_meeting_format_message("Start time must be in the format HH:mm"), False]
 
     if not (day >= 1 and day <= 7):
-        return get_wrong_format_message("Day must be between 1 (domingo) and 7 (sabado)")
+        return [get_schedule_meeting_format_message("Day must be between 1 (domingo) and 7 (sabado)"), False]
+
+    # Reply
 
     meeting_slot = user_schedule.get_slot_from_time_info(day, start_time, duration)
-    to_meet_usernames = user.get_current_interaction_data(message.author.id)
      
     #  Grab our schedule
-    self_schedule = user_schedule.get_joint_schedule(message.author.id)
-    self_minutes_slots = get_schedule_minutes_slots(self_schedule)
+    self_schedule = user_schedule.get_joint_schedule(author_id)
+    for joint_class in self_schedule:
+        class_ = joint_class['class']
+        class_day = class_['day']
+        class_start_time = class_['start_time']
+        class_duration = class_['duration']
+        class_slot = user_schedule.get_slot_from_time_info(class_day, class_start_time, class_duration)
 
-    intersect = get_intersect_week_occupancy_slot(self_minutes_slots, meeting_slot)
+        intersect = get_intersect_week_occupancy_slot([class_slot], meeting_slot)
 
-    if intersect is not None:
-        return ["You have a class at that time", False]
+        if intersect is not None:
+            if joint_class['type'] == user_schedule.ADDED_MANUAL_SCHEDULE:
+                schedule_string = format_manual_schedule(class_)
+                scheduled_event = f"You have a class at that time: {schedule_string}"
+            elif joint_class['type'] == user_schedule.ADDED_SCHEDULE:
+                schedule_string = format_api_joint_class(class_)
+                scheduled_event = f"You have a class at that time: {schedule_string}"
+            else:
+                raise Exception("Unknown schedule type")
+            
+            overlap_string = f"Overlaps with your proposed meeting on {get_day_from_day_index(day)[0]} at {format_time(start_time)}-{format_time(start_time + duration)}"
+            retry_string = "Try another time"
+            pretitle = scheduled_event + '\n' + overlap_string + '\n' + retry_string
+            message_string = get_schedule_meeting_format_message(pretitle)
+            return [message_string, False]
 
+
+    to_meet_usernames = user.get_current_interaction_data(author_id)
     for to_meet_username in to_meet_usernames:
         to_meed_schedule = user_schedule.get_joint_schedule(to_meet_username)
         to_meet_minutes_slots = get_schedule_minutes_slots(self_schedule)
@@ -888,10 +911,11 @@ def process_schedule_meeting(message, author_id: int, public, command):
         intersect = get_intersect_week_occupancy_slot(to_meet_minutes_slots, meeting_slot)
 
         if intersect is not None:
-            return [f"<@{to_meet_username}> has a class at that time", False]
+            return [f"<@{to_meet_username}> is not available at that time", False]
 
     
-    return [str(self_minutes_slots), False]
+    # All good continue
+    return ["You can have a meeting at that time", False]
     #  Grab every persons schedule
 
 def get_option_chosen(command):
@@ -947,7 +971,7 @@ def get_date(date):
 
 def format_manual_schedule(schedule: dict):
     institution = schedule['institution']
-    class_ = schedule['class']
+    class_name = schedule['class']
     lesson_type = schedule['lesson_type']
     day = schedule['day']
     start_time = schedule['start_time']
@@ -958,7 +982,24 @@ def format_manual_schedule(schedule: dict):
     day_string = f"n{day_gender} {day_name}"
     start_time_str = format_time(start_time)
     end_time_str = format_time(start_time + duration)
-    schedule_string = f"{institution} de {class_} ({lesson_type}): {day_string} às {start_time_str}-{end_time_str} {'' if location is None else f' em {location}'}"
+    schedule_string = f"{institution} de {class_name} ({lesson_type}): {day_string} às {start_time_str}-{end_time_str} {'' if location is None else f' em {location}'}"
+    return schedule_string
+
+def format_api_joint_class (schedule: dict):
+    faculty = schedule['faculty']
+    faculty_name = faculty['name']
+    course = schedule['course']
+    course_acronym = course['acronym']
+    course_unit = schedule['course_unit']
+    course_unit_acronym = course_unit['acronym']
+    class_name = schedule['name']
+    lesson_type = schedule['lesson_type']
+    day = schedule['day']
+    start_time = schedule['start_time']
+    duration = schedule['duration']
+    location = schedule['location']
+
+    schedule_string = f"{faculty_name} {course_acronym} {course_unit_acronym} {class_name} ({lesson_type}): {get_day_from_day_index(day)[0]} {format_time(start_time)}-{format_time(start_time + duration)} {'' if location is None else f' em {location}'}"
     return schedule_string
 
 def get_wrong_format_message(wrong_format_message = "Wrong format"):
@@ -1034,3 +1075,12 @@ def get_intersect_week_occupancy_slot(week_occupancy: List[Tuple[int, int]], tar
             # Target slot contains one of the slots
             return slot
     return None
+
+def get_schedule_meeting_format_message(pretitle: str = "") -> str:
+    content_items = ["dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+    content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items))
+    cancel = "0: Cancel"
+    if pretitle != "":
+        pretitle += '\n'
+    message = pretitle + content + '\n' + cancel
+    return message
