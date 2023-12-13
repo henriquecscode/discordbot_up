@@ -7,6 +7,7 @@ import copy
 
 ADDED_SCHEDULE = "added_class"
 ADDED_MANUAL_SCHEDULE = "added_manual_schedule"
+MEETING = "meeting"
 
 def add_faculty(username, faculty: Faculty):
     for user_faculty in user.users(username)["faculties"]:
@@ -291,6 +292,19 @@ def add_meeting(username, to_meet_usernames, day, start_time, duration):
         "start_time": start_time,
         "duration": duration
     }
+
+    # Check if there is a equal meeting
+    meeting_cur = user.users_col.aggregate([
+        {"$match": { "id": username }},
+        {"$unwind": "$data.meetings"},
+        {"$match": { "data.meetings.to_meet_usernames": to_meet_usernames, "data.meetings.day": day, "data.meetings.start_time": start_time, "data.meetings.duration": duration }},
+        {"$group": { "_id": "$data.meetings" }}
+    ])
+
+    meetings = list(meeting_cur)
+    if len(meetings) > 0:
+        return False
+
     user.users_col.update_one({"id": username}, {"$push": {"data.meetings": meeting_data}})
 
 
@@ -299,7 +313,7 @@ def add_meeting(username, to_meet_usernames, day, start_time, duration):
         "class": meeting_data
     }
     user.users_col.update_one({"id": username}, {"$push": {"data.joint_schedule": join_schedule}})
-    return
+    return True
 
 def get_meetings(username) -> List[dict]:
     meetings = user.users_col.aggregate([

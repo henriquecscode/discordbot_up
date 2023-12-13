@@ -934,6 +934,9 @@ def process_schedule_meeting(message, author_id: int, public, command):
             elif joint_class['type'] == user_schedule.ADDED_SCHEDULE:
                 schedule_string = format_api_joint_class(class_)
                 scheduled_event = f"You have a class at that time: {schedule_string}"
+            elif joint_class['type'] == user_schedule.MEETING:
+                schedule_string = format_meeting_string(class_)
+                scheduled_event = f"You have a meeting at that time: Meeting {schedule_string}"
             else:
                 raise Exception("Unknown schedule type")
             
@@ -973,6 +976,10 @@ def process_schedule_meeting_retry_schedule(author_id: int, public, command):
     if option_chosen == -1:
         return ["Option not recognized", False]
     
+    
+    data = user.get_current_interaction_data(author_id)
+    to_meet_usernames = data['to_meet_usernames']
+
     if option_chosen == 0:
         user.cancel_current_interaction(author_id)
         return ["Canceled", False]
@@ -980,18 +987,20 @@ def process_schedule_meeting_retry_schedule(author_id: int, public, command):
     elif option_chosen == 1:
         title = "Try another time"
         message_string = get_schedule_meeting_format_message(title)
-        user_schedule.add_schedule_meeting_interaction(author_id)
+        user_schedule.add_schedule_meeting_interaction(author_id, to_meet_usernames)
         return [message_string, False]
     elif option_chosen == 2:
 
-        data = user.get_current_interaction_data(author_id)
-        to_meet_usernames = data['to_meet_usernames']
         day = data['day']
         start_time = data['start_time']
         duration = data['duration']
-        user_schedule.add_meeting(author_id, to_meet_usernames, day, start_time, duration)
-        user.cancel_current_interaction(author_id)
-        message_string = f"Meeting scheduled on {format_time_info(day, start_time, duration)} with {', '.join(map(format_id, to_meet_usernames))}"
+        added = user_schedule.add_meeting(author_id, to_meet_usernames, day, start_time, duration)
+        meeting_string = format_meeting_string(data)
+        if added:
+            message_string = f"Meeting scheduled {meeting_string}"
+            user.cancel_current_interaction(author_id)
+        else:
+            message_string = f"That meeting on {meeting_string} is already scheduled"
         return [message_string, False]
     else:
         return ["Option not recognized", False]
