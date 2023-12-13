@@ -72,7 +72,7 @@ def process_input(message, public, id_overwride = None):
         return_message = [user.add_password(author_id, message.content.split()[1]), True]
 
     elif command == "!help":
-        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule, !schedule_meeting"]
+        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule", "!schedule_meeting", "!deschedule_meeting", "!view_meetings"]
         return_message = ["Available commands:\n" + '\n'.join(commands), False]
 
     elif command == "!add_event":
@@ -175,16 +175,42 @@ def process_input(message, public, id_overwride = None):
 
         else:
             title = "Schedule meeting"
-            content = "Choose the day and time of meeting.\n" 
-            content_items = ["dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
-            content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items))
-            cancel = "0: Cancel"
-            message_string = title + '\n' + content + '\n' + cancel
+            subtitle = "Choose the day and time of meeting" 
+            message_string = get_schedule_meeting_format_message(title + '\n' + subtitle)
             user_schedule.add_schedule_meeting_interaction(author_id, id_mentions)
             new_interaction = True
             return_message = [message_string, False]
 
-        
+    elif command == "!deschedule_meeting":
+        meetings = user_schedule.get_meetings(author_id)
+        formated_meetings = []
+        for meeting in meetings:
+            meeting_string = format_meeting_string(meeting)
+           
+
+            formated_meetings.append(f"Meeting {meeting_string}")
+
+        title = "Deschedule meeting"
+        options = formated_meetings
+        formated_output = format_output_with_cancel(title, options)
+        user_schedule.add_deschedule_meeting_interaction(author_id, meetings)
+        new_interaction = True
+        return_message = [formated_output, False]
+
+    elif command == "!view_meetings":
+        meetings = user_schedule.get_meetings(author_id)
+        if len(meetings) == 0:
+            return_message = ["You have no meetings", False]
+        else:
+            formated_meetings = []
+            for meeting in meetings:
+                meeting_string = format_meeting_string(meeting)
+                formated_meetings.append(f"Meeting {meeting_string}")
+            title = "Your meetings"
+            content = '\n'.join(formated_meetings)
+            return_message = [title + '\n' + content, False]
+
+
     if return_message is not None:
         if not new_interaction:
             user.cancel_current_interaction(author_id)
@@ -248,7 +274,13 @@ def process_input(message, public, id_overwride = None):
         
         elif interaction == Interaction.SCHEDULE_MEETING:
             return process_schedule_meeting(message, author_id, public, command)
+        
+        elif interaction == Interaction.SCHEDULE_MEETING_RETRY_SCHEDULE:
+            return process_schedule_meeting_retry_schedule(author_id, public, command)
 
+        elif interaction == Interaction.DESCHEDULE_MEETING:
+            return process_deschedule_meeting(author_id, public, command)
+        
     else:
         if command == "!cancel":
             return ["You don't have any interaction to cancel", False]
@@ -752,17 +784,17 @@ def process_add_schedule_manually(message, author_id: int, public, command):
         location = None
 
     if not day.isdigit() or not duration.isdigit():
-        return get_wrong_format_message("Day and duration must be numbers")
+        return [get_wrong_format_message("Day and duration must be numbers"), False]
     else:
         day = int(day)
         duration = int(duration)
 
     start_time = get_time_from_formated_time_input(start_time_input)
     if start_time is None:
-        return get_wrong_format_message("Start time must be in the format HH:mm")
+        return [get_wrong_format_message("Start time must be in the format HH:mm"), False]
 
     if not (day >= 1 and day <= 7):
-        return get_wrong_format_message("Day must be between 1 (domingo) and 7 (sabado)")
+        return [get_wrong_format_message("Day must be between 1 (domingo) and 7 (sabado)"), False]
 
     data = {
         "institution": institution,
@@ -850,6 +882,7 @@ def process_schedule_meeting(message, author_id: int, public, command):
     option_chosen = get_option_chosen(command)
 
     if option_chosen == 0:
+        user.cancel_current_interaction(author_id)
         return ["Canceled", False]
     
     
@@ -881,6 +914,7 @@ def process_schedule_meeting(message, author_id: int, public, command):
     # Reply
 
     meeting_slot = user_schedule.get_slot_from_time_info(day, start_time, duration)
+    to_meet_usernames = user.get_current_interaction_data(author_id)
      
     #  Grab our schedule
     self_schedule = user_schedule.get_joint_schedule(author_id)
@@ -904,26 +938,87 @@ def process_schedule_meeting(message, author_id: int, public, command):
                 raise Exception("Unknown schedule type")
             
             overlap_string = f"Overlaps with your proposed meeting on {get_day_from_day_index(day)[0]} at {format_time(start_time)}-{format_time(start_time + duration)}"
-            retry_string = "Try another time"
-            pretitle = scheduled_event + '\n' + overlap_string + '\n' + retry_string
-            message_string = get_schedule_meeting_format_message(pretitle)
-            return [message_string, False]
+            options = ["Try another time", "Schedule it anyway"]
+            formated_output = format_output_with_cancel(scheduled_event + '\n' + overlap_string, options)
+            user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, day, start_time, duration)
+            return [formated_output, False]
 
 
-    to_meet_usernames = user.get_current_interaction_data(author_id)
+    not_available_usernames = []
     for to_meet_username in to_meet_usernames:
-        to_meed_schedule = user_schedule.get_joint_schedule(to_meet_username)
-        to_meet_minutes_slots = get_schedule_minutes_slots(self_schedule)
+        to_meet_schedule = user_schedule.get_joint_schedule(to_meet_username)
+        to_meet_minutes_slots = get_schedule_minutes_slots(to_meet_schedule)
 
         intersect = get_intersect_week_occupancy_slot(to_meet_minutes_slots, meeting_slot)
 
         if intersect is not None:
-            return [f"<@{to_meet_username}> is not available at that time", False]
-
+            not_available_usernames.append(to_meet_username)
     
-    # All good continue
-    return ["You can have a meeting at that time", False]
-    #  Grab every persons schedule
+    if (len(not_available_usernames) > 0):
+        availability_string = f"Users not available on {format_time_info(day, start_time, duration)}: {', '.join(map(format_id, not_available_usernames))}\n"
+        options = ["Try another time", "Schedule it anyway"]
+        formated_output = format_output_with_cancel(availability_string, options)
+        user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, day, start_time, duration)
+    else:
+        availability_string = "You can have a meeting at that time"
+        options = ["Choose another time", "Schedule it"]
+        formated_output = format_output_with_cancel(availability_string, options)
+        user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, day, start_time, duration)
+
+    return [formated_output, False]
+
+
+def process_schedule_meeting_retry_schedule(author_id: int, public, command):
+    option_chosen = get_option_chosen(command)
+    if option_chosen == -1:
+        return ["Option not recognized", False]
+    
+    if option_chosen == 0:
+        user.cancel_current_interaction(author_id)
+        return ["Canceled", False]
+    
+    elif option_chosen == 1:
+        title = "Try another time"
+        message_string = get_schedule_meeting_format_message(title)
+        user_schedule.add_schedule_meeting_interaction(author_id)
+        return [message_string, False]
+    elif option_chosen == 2:
+
+        data = user.get_current_interaction_data(author_id)
+        to_meet_usernames = data['to_meet_usernames']
+        day = data['day']
+        start_time = data['start_time']
+        duration = data['duration']
+        user_schedule.add_meeting(author_id, to_meet_usernames, day, start_time, duration)
+        user.cancel_current_interaction(author_id)
+        message_string = f"Meeting scheduled on {format_time_info(day, start_time, duration)} with {', '.join(map(format_id, to_meet_usernames))}"
+        return [message_string, False]
+    else:
+        return ["Option not recognized", False]
+    
+
+def process_deschedule_meeting(author_id, public, command):
+    option_chosen = get_option_chosen(command)
+
+    if option_chosen == -1:
+        return ["Option not recognized", False]
+    
+    if option_chosen == 0:
+        user.cancel_current_interaction(author_id)
+        return ["Canceled", False]
+    
+    meetings = user_schedule.get_meetings(author_id)
+
+    if option_chosen < 1 or option_chosen > len(meetings):
+        return ["Option not recognized", False]
+    
+    meeting = meetings[option_chosen-1]
+
+    user_schedule.remove_meeting(author_id, meeting)
+
+    title = "Descheduled meeting"
+    return [title, False]
+       
 
 def get_option_chosen(command):
     option_chosen = command[1:].strip()
@@ -953,6 +1048,24 @@ def format_time(start_time):
     minutes = int(start_time%60)
     start_time_str = f"{hours:02d}:{minutes:02d}"
     return start_time_str
+
+def format_week_slot_string(slot: Tuple[int, int]) -> str:
+    week_time = 7 * 24 * 60 # 10080
+    week_start_time = slot[0]
+    week_end_time = slot[1]
+
+    if week_end_time < week_start_time:
+        print(f"LOG:{format_week_slot_string.__name__}: week_end_time < week_start_time")
+    
+    day = week_start_time // (24 * 60) + 1
+    start_time = week_start_time % (24 * 60)
+    duration = week_end_time - week_start_time
+    return format_time_info(day, start_time, duration)
+
+
+def format_time_info(day: int, start_time: int, duration:int) -> str:
+    day_slot_string = f"{get_day_from_day_index(day)[0]} at {format_time(start_time)}-{format_time(start_time + duration)}"
+    return day_slot_string
 
 def get_time_from_formated_time_input(time_input: str) -> None | int:
     pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
@@ -1024,13 +1137,11 @@ def get_schedule_minutes_slots(schedule: List[dict]):
 
     self_classes = [class_['class'] for class_ in schedule]
     week_occupied = user_schedule.get_week_occupancy_from_classes(self_classes)
-    print(week_occupied)
    
     non_week_crossover_occupancy = get_non_week_crossover_occupancy(week_occupied)
-    print (non_week_crossover_occupancy)
     contiguous_week_occupied = get_contiguous_week_occupancy(non_week_crossover_occupancy)
 
-    print(contiguous_week_occupied)
+    return contiguous_week_occupied
 
 def get_non_week_crossover_occupancy(week_occupancy: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     week_occupied_sorted = sorted(week_occupancy, key=lambda x: x[1])
@@ -1091,3 +1202,22 @@ def get_schedule_meeting_format_message(pretitle: str = "") -> str:
         pretitle += '\n'
     message = pretitle + content + '\n' + cancel
     return message
+
+
+def format_id(id):
+    return f"<@{id}>"
+
+def format_meeting_string_parts(meeting: dict):
+    to_meet_usernames = meeting['to_meet_usernames']
+    day = meeting['day']
+    start_time = meeting['start_time']
+    duration = meeting['duration']
+
+    to_meet_usernames_string = ', '.join(map(format_id, to_meet_usernames))
+    day_string = format_time_info(day, start_time, duration)
+
+    return to_meet_usernames_string, day_string
+
+def format_meeting_string(meeting: dict):
+    to_meet_usernames_string, day_string = format_meeting_string_parts(meeting)
+    return f"on {day_string} with {to_meet_usernames_string}"

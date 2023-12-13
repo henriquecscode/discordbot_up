@@ -21,3 +21,5 @@ class Interaction(Enum):
     REMOVE_SCHEDULE_MANUALLY = "remove_schedule_manually"
 
     SCHEDULE_MEETING = "schedule_meeting"
+    SCHEDULE_MEETING_RETRY_SCHEDULE = "schedule_meeting_retry_schedule"
+    DESCHEDULE_MEETING = "deschedule_meeting"
