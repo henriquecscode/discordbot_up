@@ -137,13 +137,19 @@ def process_input(message, public, id_overwride = None):
             split_message = message.content.split()
             id = split_message[1]
             try:
+                if id.startswith('<@') and id.endswith('>'):
+                    id = id[2:-1]
+                    id = int(id)
+                else:
+                    id = int(id)
                 # Get the int in <@237236210823593984>
-                id = id[2:-1]
-                id = int(id)
                 new_message_content = ' '.join(split_message[2:])
             except:
                 id = author_id
                 new_message_content = ' '.join(split_message[1:])
+
+            if not new_message_content.startswith('!'):
+                new_message_content = '!' + new_message_content
             new_message = message
             new_message.content = new_message_content
             output, public  = process_input(message, public, id)
