@@ -259,11 +259,13 @@ def remove_manual_schedule(username, schedule: dict) -> bool:
 
 
 def get_joint_schedule(username) -> List[dict]:
-    return user.users_col.aggregate([
+    joint_schedule = user.users_col.aggregate([
         { "$match": { "id": username } },
         { "$unwind": "$data.joint_schedule"},
         { "$replaceRoot": { "newRoot": "$data.joint_schedule" } },
     ])
+    joint_schedule = list(joint_schedule)
+    return joint_schedule
 
 
 def get_week_occupancy_from_classes(classes: List[dict]):
@@ -281,6 +283,50 @@ def get_slot_from_time_info(day, start_time, duration):
 def get_week_minutes(day, minutes):
     week_minutes = (day-1) * 24 * 60 + minutes
     return week_minutes
+
+def add_meeting(username, to_meet_usernames, day, start_time, duration):
+    meeting_data = {
+        "to_meet_usernames": to_meet_usernames,
+        "day": day,
+        "start_time": start_time,
+        "duration": duration
+    }
+    user.users_col.update_one({"id": username}, {"$push": {"data.meetings": meeting_data}})
+
+
+    join_schedule = {
+        "type": "meeting",
+        "class": meeting_data
+    }
+    user.users_col.update_one({"id": username}, {"$push": {"data.joint_schedule": join_schedule}})
+    return
+
+def get_meetings(username) -> List[dict]:
+    meetings = user.users_col.aggregate([
+        { "$match": { "id": username } },
+        { "$unwind": "$data.meetings"},
+        { "$replaceRoot": { "newRoot": "$data.meetings" } },
+    ])
+    meetings = list(meetings)
+    return meetings
+
+def remove_meeting(username, meeting):
+    update_result : pymongo.results.UpdateResult = user.users_col.update_one(
+        {"id": username},
+        {"$pull": {"data.meetings": {"to_meet_usernames": meeting['to_meet_usernames'], "day": meeting['day'], "start_time": meeting['start_time'], "duration": meeting['duration']}}})
+    
+    update_joint_results = user.users_col.update_one(
+        {"id": username},
+        {"$pull": {"data.joint_schedule": {
+            "type": "meeting",
+            "class.to_meet_usernames": meeting['to_meet_usernames'],
+            "class.day": meeting['day'],
+            "class.start_time": meeting['start_time'],
+            "class.duration": meeting['duration']}}}
+    )
+    if update_result.modified_count > 0:
+        return True
+    return False
 
 def add_current_schedule_interaction(username):
     user.user_interactions[username]['current_interaction'] = Interaction.ADD_SCHEDULE
@@ -394,3 +440,17 @@ def add_remove_schedule_manually_interaction(username, schedules: List[dict]):
 def add_schedule_meeting_interaction(username, to_meet_usernames):
     user.user_interactions[username]['current_interaction'] = Interaction.SCHEDULE_MEETING
     user.user_interactions[username]['current_interaction_data'] = to_meet_usernames
+
+def add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, day, start_time, duration):
+    user.user_interactions[author_id]['current_interaction'] = Interaction.SCHEDULE_MEETING_RETRY_SCHEDULE
+    user.user_interactions[author_id]['current_interaction_data'] = {
+        "to_meet_usernames": to_meet_usernames,
+        "day": day,
+        "start_time": start_time,
+        "duration": duration
+    }
+
+
+def add_deschedule_meeting_interaction(username, meetings: List[dict]):
+    user.user_interactions[username]['current_interaction'] = Interaction.DESCHEDULE_MEETING
+    user.user_interactions[username]['current_interaction_data'] = meetings
