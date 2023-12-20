@@ -24,7 +24,8 @@ def process_input(message, public):
     if command == "!add_friend":
         if len(message.mentions) != 1:
             return_message = ["You have to mention which friend you would like to add. Ex.: !add_friend @someone", False]
-        return_message = [user.send_friend_request(message.author.id, message.mentions[0].name), False]
+        else:
+            return_message = [user.send_friend_request(message.author.id, message.mentions[0].id, message.mentions[0].name), False]
 
     elif command == "!friend_requests":
         return_message = [user.check_friend_requests(message.author.id), False]
@@ -40,7 +41,7 @@ def process_input(message, public):
         if len(message.mentions) != 1:
             return_message = ["You have to mention which friend you would like to remove. Ex.: !remove_friend @someone", False]
         
-        return_message = [user.remove_friend(message.author.id, message.mentions[0].name), False]
+        return_message = [user.remove_friend(message.author.id, message.mentions[0].id, message.mentions[0].name), False]
     
     elif command == "!friends_list":
         return_message = [user.show_friends_list(message.author.id), False]
@@ -96,16 +97,16 @@ def process_input(message, public):
             if date_obj[0] == "failed":
                 return ["Unsupported date format. Supported formats: '%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y'", False]
             else:
-                return [user.create_event(message.author.name, date_obj[1], event_name, hours, minutes), False]
+                return [user.create_event(message.author.id, date_obj[1], event_name, hours, minutes), False]
             
     elif command == "!events":
-        user.update_events(message.author.name)
+        user.update_events(message.author.id)
         if len(message.content.split()) > 1:
             if message.content.split()[1] == "delete":
-                return_message = [user.delete_event(message.author.name, int(message.content.split()[2]) - 1), False]
+                return_message = [user.delete_event(message.author.id, int(message.content.split()[2]) - 1), False]
         else:
             title = "Your future events:"
-            options = user.get_events_list(message.author.name)
+            options = user.get_events_list(message.author.id)
             if len(options) > 0:
                 return_message = [format_output(title, options) + "\n\nIn order to delete events do !events delete #", False]
             else:

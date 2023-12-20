@@ -13,7 +13,7 @@ users_col = db.users
 users_col.create_index("id", unique=True)
 user_interactions = {}
 
-filename = None
+filename = "users.json"
 def setup_data():
     users = list(users_col.find())
     for user in users:
@@ -57,18 +57,17 @@ def account_checker(user):
     if users_col.find_one({"id": user}) is None:
         create_user(user)
 
-def send_friend_request(user1, user2):
+def send_friend_request(user1, user2, user2_name):
     if user1 == user2:
         return "You can't friend request yourself"
-    if user2 in users(user1)["data"]["friends"]:     
+    if user2 in users(user1)["data"]["friends"]:
         return user2 + " is already on your friends list"
     
     if user1 in users(user2)["data"]["incoming_friend_invites"]:     
-        return "You already sent a friend request to " + user2
+        return "You already sent a friend request to " + user2_name
     
     users_col.find_one_and_update({"id": user2}, {"$push": {"data.incoming_friend_invites": user1}})
-    store_data()
-    return "Friend request sent to " + user2
+    return "Friend request sent to " + user2_name
 
 def check_friend_requests(user):
     if len(users(user)["data"]["incoming_friend_invites"]) == 0:
@@ -87,7 +86,7 @@ def accept_friend_request(user, index):
 
     return "Friend request from " + user2 + " accepted!"
 
-def remove_friend(user1, user2):
+def remove_friend(user1, user2, user2_name):
     user1_friends = users(user1)["data"]["friends"]
     if user2 not in user1_friends:
         return user2 + " is not on your friends list"
@@ -100,7 +99,7 @@ def remove_friend(user1, user2):
     users_col.update_one({"id": user1}, {"$set": {"data.friends": user1_friends}})
     users_col.update_one({"id": user2}, {"$set": {"data.friends": user2_friends}})
 
-    return user2 + " has been removed from your friends list"
+    return user2_name + " has been removed from your friends list"
 
 def show_friends_list(user):
     if len(users(user)["data"]["friends"]) == 0:
@@ -115,7 +114,6 @@ def add_username(user, username):
     pattern = r'^up\d{9}(@up.pt)?(@fe.up.pt)?$'
     if re.match(pattern, username):
         users(user)["username"] = username
-        store_data()
         return "Username saved"
     else:
         return "Wrong username format, available formats: \nupXXXXXXXXX \nupXXXXXXXXX@up.pt \nupXXXXXXXXX@fe.up.pt"
@@ -149,31 +147,35 @@ def create_event(user, date_obj, name, hour , minute):
         return "This date is from the past, please only setup future events"
     else:
         event = [name, event_time.timestamp()]
-        users[user]["data"]["events"].append(event)
-        store_data()
+        users_col.find_one_and_update({"id": user}, {"$push": {"data.events": event}})
+
         return "Event '" + name + "' at " + str(event_time.strftime('%d-%m-%Y %H:%M')) + " saved to your events. Do !events to check your future events"
 
 def delete_event(user, event):
-    if event > len(users[user]["data"]["events"]) or event < 0:
+    if event > len(users(user)["data"]["events"]) or event < 0:
         return "That event doesn't exist"
-    event_name = users[user]["data"]["events"][event][0]
-    users[user]["data"]["events"].pop(event)
-    store_data()
+    user_events = users(user)["data"]["events"]
+    event_name = user_events[event][0]
+    del user_events[event]
+
+    users_col.update_one({"id": user}, {"$set": {"data.events": user_events}})
     return "Event " + event_name + " deleted"
 
 def get_events_list(user):
     events_list =[]
-    for event in users[user]["data"]["events"]:
+    user_data = users(user)["data"]["events"]
+    for event in user_data:
         events_list.append(event[0] + " at " + str(datetime.utcfromtimestamp(event[1]).strftime('%d-%m-%Y %H:%M')))
     return events_list
 
 
 def update_events(user):
-    users[user]["data"]["events"] = sorted(users[user]["data"]["events"], key=lambda x: x[1])
+    user_events = users(user)["data"]["events"]
+    user_events = sorted(user_events, key=lambda x: x[1])
+    users_col.update_one({"id": user}, {"$set": {"data.events": user_events}})
     now = datetime.now().timestamp()
     week = 604800
-    for index, event_time in enumerate(users[user]["data"]["events"]):
+    for index, event_time in enumerate(user_events):
         if now >= event_time[1] + week:
             delete_event(user, index)
-    store_data()
     return
