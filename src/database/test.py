@@ -19,7 +19,7 @@ if __name__ == "__main__":
     course_id = course[0]
     # course_units_year = api.get_course_course_units_year(course_id)
     get_course_course_unit = api.get_course_course_unit(course_id)
-    get_course_unit_schedule = api.get_course_unit_schedule(get_course_course_unit[0][14])
+    get_course_unit_schedule = api.get_course_unit_schedules(get_course_course_unit[0][14])
     objects = DBAPI.get_objects([CourseUnit, Schedule], get_course_unit_schedule)
     print(objects)
     exit(0)
