@@ -5,6 +5,7 @@ from events.interaction import Interaction
 from database.dbs.schema import *
 from datetime import datetime, timedelta
 from pymongo import MongoClient
+from slot_types import  EVENT
 
 client = MongoClient('localhost', 27017)
 
@@ -147,7 +148,23 @@ def create_event(user, date_obj, name, hour , minute):
         return "This date is from the past, please only setup future events"
     else:
         event = [name, event_time.timestamp()]
-        users_col.find_one_and_update({"id": user}, {"$push": {"data.events": event}})
+        users_col.find_one_and_update(
+            {"id": user}, {"$push": {"data.events": event}})
+
+        if (hour or minute):
+            duration = 60
+        else:
+            duration = 60 * 24
+        event_object = {
+            "type": EVENT,
+            "class": {
+                "name": name,
+                "date": event_time,
+                "duration": duration
+            }
+        }
+
+        users_col.find_one_and_update({"id": user}, {"$push": {"data.joint_schedule": event_object}})
 
         return "Event '" + name + "' at " + str(event_time.strftime('%d-%m-%Y %H:%M')) + " saved to your events. Do !events to check your future events"
 
@@ -159,6 +176,9 @@ def delete_event(user, event):
     del user_events[event]
 
     users_col.update_one({"id": user}, {"$set": {"data.events": user_events}})
+
+    # delete from joint schedule
+    users_col.update_many({"id": user}, {"$pull": {"data.joint_schedule": {"type": EVENT, "class.name": event_name}}})
     return "Event " + event_name + " deleted"
 
 def get_events_list(user):

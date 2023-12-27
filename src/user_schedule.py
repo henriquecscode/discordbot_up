@@ -5,10 +5,7 @@ from database.dbs.schema import *
 from typing import List
 import copy
 
-ADDED_SCHEDULE = "added_class"
-ADDED_MANUAL_SCHEDULE = "added_manual_schedule"
-MEETING = "meeting"
-
+from slot_types import ADDED_SCHEDULE, ADDED_MANUAL_SCHEDULE, MEETING
 def add_faculty(username, faculty: Faculty):
     for user_faculty in user.users(username)["faculties"]:
         if user_faculty["name"] == faculty.acronym:

@@ -1,5 +1,6 @@
 import user
 import user_schedule
+import slot_types
 from events.interaction import Interaction
 from database.database_api import api
 from typing import List, Tuple
@@ -925,7 +926,7 @@ def process_schedule_meeting(message, author_id: int, public, command):
     for joint_class in self_schedule:
         joint_class_type = joint_class['type']
 
-        if joint_class_type == user_schedule.ADDED_MANUAL_SCHEDULE or joint_class_type == user_schedule.ADDED_SCHEDULE:
+        if joint_class_type == slot_types.ADDED_MANUAL_SCHEDULE or joint_class_type == slot_types.ADDED_SCHEDULE:
             class_ = joint_class['class']
             class_day = class_['day']
             class_start_time = class_['start_time']
@@ -933,7 +934,7 @@ def process_schedule_meeting(message, author_id: int, public, command):
             class_slot = user_schedule.get_slot_from_time_info(class_day, class_start_time, class_duration)
 
             intersect = get_intersect_week_occupancy_slot(class_slot, meeting_slot)
-        elif joint_class_type == user_schedule.MEETING:
+        elif joint_class_type == slot_types.MEETING or joint_class_type == slot_types.EVENT:
             class_ = joint_class['class']
             class_date = class_['date']
             class_duration = class_['duration']
@@ -944,20 +945,23 @@ def process_schedule_meeting(message, author_id: int, public, command):
             raise Exception("Unknown schedule type")
 
         if intersect is not None:
-            if joint_class['type'] == user_schedule.ADDED_MANUAL_SCHEDULE:
+            if joint_class['type'] == slot_types.ADDED_MANUAL_SCHEDULE:
                 schedule_string = format_manual_schedule(class_)
                 scheduled_event = f"You have a class at that time: {schedule_string}"
-            elif joint_class['type'] == user_schedule.ADDED_SCHEDULE:
+            elif joint_class['type'] == slot_types.ADDED_SCHEDULE:
                 schedule_string = format_api_joint_class(class_)
                 scheduled_event = f"You have a class at that time: {schedule_string}"
-            elif joint_class['type'] == user_schedule.MEETING:
+            elif joint_class['type'] == slot_types.MEETING:
                 schedule_string = format_meeting_string(class_)
                 scheduled_event = f"You have a meeting at that time: Meeting {schedule_string}"
+            elif joint_class['type'] == slot_types.EVENT:
+                schedule_string = format_event_string(class_)
+                scheduled_event = f"You have an event at that time: {schedule_string}"
             else:
                 raise Exception("Unknown schedule type")
             
             #todo
-            overlap_string = f"Overlaps with your proposed meeting on {get_day_from_day_index(input_day)[0]} at {format_time(start_time)}-{format_time(start_time + duration)}"
+            overlap_string = f"Overlaps with your proposed meeting on {format_absolute_time_slot_info(date, duration)}"
             options = ["Try another time", "Schedule it anyway"]
             formated_output = format_output_with_cancel(scheduled_event + '\n' + overlap_string, options)
             user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, date, duration)
@@ -967,7 +971,7 @@ def process_schedule_meeting(message, author_id: int, public, command):
     not_available_usernames = []
     for to_meet_username in to_meet_usernames:
         to_meet_schedule = user_schedule.get_joint_schedule(to_meet_username)
-        periodic_classes = [joint_class for joint_class in to_meet_schedule if joint_class['type'] == user_schedule.ADDED_SCHEDULE or joint_class['type'] == user_schedule.ADDED_MANUAL_SCHEDULE]
+        periodic_classes = [joint_class for joint_class in to_meet_schedule if joint_class['type'] == slot_types.ADDED_SCHEDULE or joint_class['type'] == slot_types.ADDED_MANUAL_SCHEDULE]
         to_meet_minutes_slots = get_schedule_minutes_slots(periodic_classes)
         
 
@@ -977,7 +981,7 @@ def process_schedule_meeting(message, author_id: int, public, command):
             not_available_usernames.append(to_meet_username)
             continue
 
-        exceptional_classes = [joint_class for joint_class in to_meet_schedule if joint_class['type'] == user_schedule.MEETING]
+        exceptional_classes = [joint_class for joint_class in to_meet_schedule if joint_class['type'] == slot_types.MEETING or joint_class['type'] == slot_types.EVENT]
         exceptional_classes_absolute_slots = [ (joint_class['class']['date'], joint_class['class']['duration']) for joint_class in exceptional_classes ]
         exceptional_intersects = [get_intersect_absolute_slots(to_intersect_slot, (date, duration)) for to_intersect_slot in exceptional_classes_absolute_slots]
         does_intersect = any([intersect is not None for intersect in exceptional_intersects])
@@ -1301,3 +1305,10 @@ def format_meeting_string_parts(meeting: dict):
 def format_meeting_string(meeting: dict):
     to_meet_usernames_string, time_string = format_meeting_string_parts(meeting)
     return f"on {time_string} with {to_meet_usernames_string}"
+
+def format_event_string(event: dict):
+    date = event['date']
+    duration = event['duration']
+    name = event['name']
+    time_string = format_absolute_time_slot_info(date, duration)
+    return f"{name} on {time_string}"
