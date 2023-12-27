@@ -285,11 +285,10 @@ def get_week_minutes(day, minutes):
     week_minutes = (day-1) * 24 * 60 + minutes
     return week_minutes
 
-def add_meeting(username, to_meet_usernames, day, start_time, duration):
+def add_meeting(username, to_meet_usernames, date: datetime, duration: int):
     meeting_data = {
         "to_meet_usernames": to_meet_usernames,
-        "day": day,
-        "start_time": start_time,
+        "date": date,
         "duration": duration
     }
 
@@ -297,7 +296,7 @@ def add_meeting(username, to_meet_usernames, day, start_time, duration):
     meeting_cur = user.users_col.aggregate([
         {"$match": { "id": username }},
         {"$unwind": "$data.meetings"},
-        {"$match": { "data.meetings.to_meet_usernames": to_meet_usernames, "data.meetings.day": day, "data.meetings.start_time": start_time, "data.meetings.duration": duration }},
+        {"$match": { "data.meetings.to_meet_usernames": to_meet_usernames, "data.meetings.date": date, "data.meetings.duration": duration }},
         {"$group": { "_id": "$data.meetings" }}
     ])
 
@@ -327,15 +326,14 @@ def get_meetings(username) -> List[dict]:
 def remove_meeting(username, meeting):
     update_result : pymongo.results.UpdateResult = user.users_col.update_one(
         {"id": username},
-        {"$pull": {"data.meetings": {"to_meet_usernames": meeting['to_meet_usernames'], "day": meeting['day'], "start_time": meeting['start_time'], "duration": meeting['duration']}}})
+        {"$pull": {"data.meetings": {"to_meet_usernames": meeting['to_meet_usernames'], "date": meeting['date'], "duration": meeting['duration']}}})
     
     update_joint_results = user.users_col.update_one(
         {"id": username},
         {"$pull": {"data.joint_schedule": {
             "type": "meeting",
             "class.to_meet_usernames": meeting['to_meet_usernames'],
-            "class.day": meeting['day'],
-            "class.start_time": meeting['start_time'],
+            "class.date": meeting['date'],
             "class.duration": meeting['duration']}}}
     )
     if update_result.modified_count > 0:
@@ -455,12 +453,11 @@ def add_schedule_meeting_interaction(username, to_meet_usernames):
     user.user_interactions[username]['current_interaction'] = Interaction.SCHEDULE_MEETING
     user.user_interactions[username]['current_interaction_data'] = to_meet_usernames
 
-def add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, day, start_time, duration):
+def add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, date: datetime.datetime, duration: int):
     user.user_interactions[author_id]['current_interaction'] = Interaction.SCHEDULE_MEETING_RETRY_SCHEDULE
     user.user_interactions[author_id]['current_interaction_data'] = {
         "to_meet_usernames": to_meet_usernames,
-        "day": day,
-        "start_time": start_time,
+        "date" : date,
         "duration": duration
     }
 

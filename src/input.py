@@ -4,7 +4,7 @@ from events.interaction import Interaction
 from database.database_api import api
 from typing import List, Tuple
 from database.dbs.schema import *
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 
 AUTHOR_IDS = [211486403874258944, 237236210823593984]
@@ -99,10 +99,10 @@ def process_input(message, public, id_overwride = None):
                 if not (re.match(pattern,  message.content.split()[date_index + 1])):
                     return ["Wrong format. Ex.: !add_event Programming Test 31/12/2023 15:00", False]
                 hours, minutes = message.content.split()[date_index + 1].split(":")
-            if date_obj[0] == "failed":
+            if date_obj is None:
                 return ["Unsupported date format. Supported formats: '%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y'", False]
             else:
-                return [user.create_event(message.author.id, date_obj[1], event_name, hours, minutes), False]
+                return [user.create_event(message.author.id, date_obj, event_name, hours, minutes), False]
             
     elif command == "!events":
         user.update_events(message.author.id)
@@ -893,39 +893,55 @@ def process_schedule_meeting(message, author_id: int, public, command):
 
     if len(content) != 3:
         return get_schedule_meeting_format_message("Must have 3 parameters")
-    
-    day = content[0]
+    input_date = content[0]
     input_time = content[1]
     duration = content[2]
 
-    if not day.isdigit() or not duration.isdigit():
-        return get_schedule_meeting_format_message("Day and duration must be numbers")
+    if not duration.isdigit():
+        return get_schedule_meeting_format_message("Duration must be number")
     else:
-        day = int(day)
         duration = int(duration)
 
-    start_time = get_time_from_formated_time_input(input_time)
-    if start_time is None:
+    hours_minutes = get_hours_minutes_from_formated_time_input(input_time)
+    if hours_minutes is None:
         return [get_schedule_meeting_format_message("Start time must be in the format HH:mm"), False]
+    
+    hours, minutes = hours_minutes
+    start_time = hours * 60 + minutes
 
-    if not (day >= 1 and day <= 7):
-        return [get_schedule_meeting_format_message("Day must be between 1 (domingo) and 7 (sabado)"), False]
+    date = get_date(input_date)
 
+    if date is None:
+        return [get_schedule_meeting_format_message("Day must be in the format DD/MM/YYYY"), False]
+    
+    date = date.replace(hour=hours, minute=minutes)
+    input_day = ( date.weekday()+1 ) % 7
     # Reply
-
-    meeting_slot = user_schedule.get_slot_from_time_info(day, start_time, duration)
+    meeting_slot = user_schedule.get_slot_from_time_info(input_day, start_time, duration)
     to_meet_usernames = user.get_current_interaction_data(author_id)
      
     #  Grab our schedule
     self_schedule = user_schedule.get_joint_schedule(author_id)
     for joint_class in self_schedule:
-        class_ = joint_class['class']
-        class_day = class_['day']
-        class_start_time = class_['start_time']
-        class_duration = class_['duration']
-        class_slot = user_schedule.get_slot_from_time_info(class_day, class_start_time, class_duration)
+        joint_class_type = joint_class['type']
 
-        intersect = get_intersect_week_occupancy_slot([class_slot], meeting_slot)
+        if joint_class_type == user_schedule.ADDED_MANUAL_SCHEDULE or joint_class_type == user_schedule.ADDED_SCHEDULE:
+            class_ = joint_class['class']
+            class_day = class_['day']
+            class_start_time = class_['start_time']
+            class_duration = class_['duration']
+            class_slot = user_schedule.get_slot_from_time_info(class_day, class_start_time, class_duration)
+
+            intersect = get_intersect_week_occupancy_slot(class_slot, meeting_slot)
+        elif joint_class_type == user_schedule.MEETING:
+            class_ = joint_class['class']
+            class_date = class_['date']
+            class_duration = class_['duration']
+
+            intersect = get_intersect_absolute_slots((class_date, class_duration), (date, duration))
+
+        else:
+            raise Exception("Unknown schedule type")
 
         if intersect is not None:
             if joint_class['type'] == user_schedule.ADDED_MANUAL_SCHEDULE:
@@ -940,33 +956,47 @@ def process_schedule_meeting(message, author_id: int, public, command):
             else:
                 raise Exception("Unknown schedule type")
             
-            overlap_string = f"Overlaps with your proposed meeting on {get_day_from_day_index(day)[0]} at {format_time(start_time)}-{format_time(start_time + duration)}"
+            #todo
+            overlap_string = f"Overlaps with your proposed meeting on {get_day_from_day_index(input_day)[0]} at {format_time(start_time)}-{format_time(start_time + duration)}"
             options = ["Try another time", "Schedule it anyway"]
             formated_output = format_output_with_cancel(scheduled_event + '\n' + overlap_string, options)
-            user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, day, start_time, duration)
+            user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, date, duration)
             return [formated_output, False]
 
 
     not_available_usernames = []
     for to_meet_username in to_meet_usernames:
         to_meet_schedule = user_schedule.get_joint_schedule(to_meet_username)
-        to_meet_minutes_slots = get_schedule_minutes_slots(to_meet_schedule)
+        periodic_classes = [joint_class for joint_class in to_meet_schedule if joint_class['type'] == user_schedule.ADDED_SCHEDULE or joint_class['type'] == user_schedule.ADDED_MANUAL_SCHEDULE]
+        to_meet_minutes_slots = get_schedule_minutes_slots(periodic_classes)
+        
 
-        intersect = get_intersect_week_occupancy_slot(to_meet_minutes_slots, meeting_slot)
-
-        if intersect is not None:
+        periodic_intersects = [get_intersect_week_occupancy_slot(to_meet_minutes_slot, meeting_slot) for to_meet_minutes_slot in to_meet_minutes_slots]
+        does_intersect = any([intersect is not None for intersect in periodic_intersects])
+        if does_intersect:
             not_available_usernames.append(to_meet_username)
+            continue
+
+        exceptional_classes = [joint_class for joint_class in to_meet_schedule if joint_class['type'] == user_schedule.MEETING]
+        exceptional_classes_absolute_slots = [ (joint_class['class']['date'], joint_class['class']['duration']) for joint_class in exceptional_classes ]
+        exceptional_intersects = [get_intersect_absolute_slots(to_intersect_slot, (date, duration)) for to_intersect_slot in exceptional_classes_absolute_slots]
+        does_intersect = any([intersect is not None for intersect in exceptional_intersects])
+        if does_intersect:
+            not_available_usernames.append(to_meet_username)
+            continue
+        
     
     if (len(not_available_usernames) > 0):
-        availability_string = f"Users not available on {format_time_info(day, start_time, duration)}: {', '.join(map(format_id, not_available_usernames))}\n"
+        #todo
+        availability_string = f"Users not available on {format_absolute_time_slot_info(date, duration)}: {', '.join(map(format_id, not_available_usernames))}\n"
         options = ["Try another time", "Schedule it anyway"]
         formated_output = format_output_with_cancel(availability_string, options)
-        user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, day, start_time, duration)
+        user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, date, duration)
     else:
         availability_string = "You can have a meeting at that time"
         options = ["Choose another time", "Schedule it"]
         formated_output = format_output_with_cancel(availability_string, options)
-        user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, day, start_time, duration)
+        user_schedule.add_schedule_meeting_retry_schedule_interaction(author_id, to_meet_usernames, date, duration)
 
     return [formated_output, False]
 
@@ -991,10 +1021,9 @@ def process_schedule_meeting_retry_schedule(author_id: int, public, command):
         return [message_string, False]
     elif option_chosen == 2:
 
-        day = data['day']
-        start_time = data['start_time']
-        duration = data['duration']
-        added = user_schedule.add_meeting(author_id, to_meet_usernames, day, start_time, duration)
+        date: datetime = data['date']
+        duration: int = data['duration']
+        added = user_schedule.add_meeting(author_id, to_meet_usernames, date,  duration)
         meeting_string = format_meeting_string(data)
         if added:
             message_string = f"Meeting scheduled {meeting_string}"
@@ -1027,7 +1056,7 @@ def process_deschedule_meeting(author_id, public, command):
 
     title = "Descheduled meeting"
     return [title, False]
-       
+           
 
 def get_option_chosen(command):
     option_chosen = command[1:].strip()
@@ -1052,7 +1081,7 @@ def get_day_from_day_index(day_index: int) -> Tuple[str, str]:
     gender = ["o", "a", "a", "a", "a", "a", "o"]
     return days[day_index-1], gender[day_index-1]
 
-def format_time(start_time):
+def format_time(start_time): # start_time in minutes of a day
     hours = int(start_time//60)
     minutes = int(start_time%60)
     start_time_str = f"{hours:02d}:{minutes:02d}"
@@ -1076,7 +1105,21 @@ def format_time_info(day: int, start_time: int, duration:int) -> str:
     day_slot_string = f"{get_day_from_day_index(day)[0]} at {format_time(start_time)}-{format_time(start_time + duration)}"
     return day_slot_string
 
-def get_time_from_formated_time_input(time_input: str) -> None | int:
+def format_absolute_time_slot_info(date: datetime, duration: int) -> str:
+    final_date = date + timedelta(minutes=duration)
+    if date.day == final_date.day:
+        day_slot_string = f"{format_date_date(date)} at {format_time(date.hour*60 + date.minute)}-{format_time(final_date.hour*60 + final_date.minute)}"
+    else:
+        day_slot_string = f"{format_date_date(date)} at {format_time(date.hour*60 + date.minute)}-{format_date_date(final_date)} at {format_time(final_date.hour*60 + final_date.minute)}"
+
+    return day_slot_string
+
+def format_date_date(date: datetime) -> str:
+    format = "%d/%m/%Y"
+    date_string = date.strftime(format)
+    return date_string
+
+def get_hours_minutes_from_formated_time_input(time_input: str) -> None | int:
     pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
     if not (re.match(pattern,  time_input)):
         return None
@@ -1084,18 +1127,27 @@ def get_time_from_formated_time_input(time_input: str) -> None | int:
         hours, minutes = time_input.split(":")
         hours = int(hours)
         minutes = int(minutes)
-        time_int = hours*60 + minutes
-        return time_int
+        return hours, minutes
 
-def get_date(date):
+
+def get_time_from_formated_time_input(time_input: str) -> None | int:
+    hours_minutes = get_hours_minutes_from_formated_time_input(time_input)
+    if hours_minutes is None:
+        return None
+    else:
+        hours, minutes = hours_minutes
+        return hours * 60 + minutes
+        
+    
+def get_date(date) -> datetime | None:
     formats = ['%d-%m-%Y', '%d/%m/%Y', '%d-%m-%y', '%d/%m/%y']
     for fmt in formats:
         try:
             date_obj = datetime.strptime(date, fmt)
-            return ["worked", date_obj]
+            return date_obj
         except ValueError:
             pass
-    return ["failed", None]
+    return None
 
 
 def format_manual_schedule(schedule: dict):
@@ -1187,24 +1239,44 @@ def get_contiguous_week_occupancy(week_occupancy: List[Tuple[int, int]]) -> List
     contiguous_week_occupied.append((prev_start, prev_end))
     return contiguous_week_occupied
 
-def get_intersect_week_occupancy_slot(week_occupancy: List[Tuple[int, int]], target_slot: Tuple[int, int]) -> Tuple[int, int] | None:
+def get_intersect_week_occupancy_slot(to_intersect_slot: Tuple[int, int], target_slot: Tuple[int, int]) -> Tuple[int, int] | None:
     target_start_time, target_end_time = target_slot
-    for slot in week_occupancy:
-        slot_start_time, slot_end_time = slot
+    slot_start_time, slot_end_time = to_intersect_slot
 
-        if target_start_time >= slot_start_time and target_start_time < slot_end_time:
-            # Target start time is inside one of the slots
-            return slot
-        elif target_end_time > slot_start_time and target_end_time <= slot_end_time:
-            # Target end time is inside one of the slots
-            return slot
-        elif target_start_time <= slot_start_time and target_end_time >= slot_end_time:
-            # Target slot contains one of the slots
-            return slot
+    if target_start_time >= slot_start_time and target_start_time < slot_end_time:
+        # Target start time is inside one of the slots
+        return to_intersect_slot
+    elif target_end_time > slot_start_time and target_end_time <= slot_end_time:
+        # Target end time is inside one of the slots
+        return to_intersect_slot
+    elif target_start_time <= slot_start_time and target_end_time >= slot_end_time:
+        # Target slot contains one of the slots
+        return to_intersect_slot
+    return None
+
+def get_intersect_absolute_slots(to_intersect_slot: Tuple[datetime, int], target_slot: Tuple[datetime, int]) -> Tuple[datetime, int] | None:
+    to_intersect_start_date, to_intersect_duration = to_intersect_slot
+    target_start_date, target_duration = target_slot
+
+    to_intersect_end_date = to_intersect_start_date + timedelta(minutes=to_intersect_duration)
+    target_end_date = target_start_date + timedelta(minutes=target_duration)
+
+    if to_intersect_start_date >= target_start_date and to_intersect_start_date < target_end_date:
+        # Target start time is inside one of the slots
+        return to_intersect_slot
+    
+    elif to_intersect_end_date > target_start_date and to_intersect_end_date <= target_end_date:
+        # Target end time is inside one of the slots
+        return to_intersect_slot
+    
+    elif to_intersect_start_date <= target_start_date and to_intersect_end_date >= target_end_date:
+        # Target slot contains one of the slots
+        return to_intersect_slot
     return None
 
 def get_schedule_meeting_format_message(pretitle: str = "") -> str:
-    content_items = ["dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+    
+    content_items = ["dia (dd/MM/YYYY)", "hora (HH:mm)", "duracao (minutos)"]
     content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items))
     cancel = "0: Cancel"
     if pretitle != "":
@@ -1218,15 +1290,14 @@ def format_id(id):
 
 def format_meeting_string_parts(meeting: dict):
     to_meet_usernames = meeting['to_meet_usernames']
-    day = meeting['day']
-    start_time = meeting['start_time']
+    date = meeting['date']
     duration = meeting['duration']
 
     to_meet_usernames_string = ', '.join(map(format_id, to_meet_usernames))
-    day_string = format_time_info(day, start_time, duration)
+    time_string = format_absolute_time_slot_info(date, duration)
 
-    return to_meet_usernames_string, day_string
+    return to_meet_usernames_string, time_string
 
 def format_meeting_string(meeting: dict):
-    to_meet_usernames_string, day_string = format_meeting_string_parts(meeting)
-    return f"on {day_string} with {to_meet_usernames_string}"
+    to_meet_usernames_string, time_string = format_meeting_string_parts(meeting)
+    return f"on {time_string} with {to_meet_usernames_string}"
