@@ -216,7 +216,7 @@ def send_notification():
     notification_condition.notify()
     notification_condition.release()
     current_event = ["", sys.maxsize, 0]
-    # setup_event_notifications()
+    setup_event_notifications()
 
 async def send_message():
     global next_event
@@ -246,9 +246,6 @@ async def notification_loop():
             print("Got notification")
             await send_message()
             # notification_condition.wait()
-
-async def start_notification_thread():
-    setup_event_notifications()
 
 def setup_event_notifications(): #Sets the next event as current_event, defaulting the timer
     global current_event, timer, notified
