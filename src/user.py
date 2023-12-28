@@ -8,6 +8,7 @@ from pymongo import MongoClient
 import threading
 import sys
 import time
+from notification import send_dm
 
 client = MongoClient('localhost', 27017)
 
@@ -192,6 +193,7 @@ timer = None
 def send_notification():
     global current_event
     print("Time to notificate " + str(current_event[2]) + " of event " + current_event[0])
+    #send_dm(current_event)
     current_event = ["", sys.maxsize, 0]
     setup_event_notifications()
 
