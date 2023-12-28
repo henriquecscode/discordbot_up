@@ -189,16 +189,69 @@ def update_events(user):
 
 current_event = ["", sys.maxsize, 0]
 timer = None
+import threading
+import client as discord_client
+from discord import Client
+import asyncio
+from client import get_client
+
+
+next_event = []
+notification_condition = threading.Condition()
+notification_thread = None
+notified = True
+
 
 def send_notification():
     global current_event
     print("Time to notificate " + str(current_event[2]) + " of event " + current_event[0])
     #send_dm(current_event)
+    message = "Event " + current_event[0] + " is now!"
+    user_id = current_event[2]
+    if user_id == None or user_id == 0:
+        return
+    next_event.append([user_id, message])
+    # send_message_thread = threading.Thread(target=asyncio.run, args  = (send_message(user_id, message),))
+    notification_condition.acquire()
+    notification_condition.notify()
+    notification_condition.release()
     current_event = ["", sys.maxsize, 0]
+    # setup_event_notifications()
+
+async def send_message():
+    global next_event
+    event = next_event[0]
+    user_id, message = event[0], event[1]
+    next_event = next_event[1:]
+    user = await get_client().fetch_user(user_id)
+    # user = await async_func()
+    await user.send(message)
+    # get_user_id_co = await asyncio.wait_for(get_user_id(id), timeout=10)
+    # user = await asyncio.gather(get_user_id_co)
+    # asyncio.wait_for(user.send(message), timeout=5)
+    return None
+
+async def notification_loop():
+    global next_event, notification_thread
+    # my thread
+    print("Starting notification thread")
+    # notification_condition.acquire()
+    # notification_condition.wait()
+
+    while True:
+        if len(next_event) == 0:
+            await asyncio.sleep(1)
+            continue
+        else:
+            print("Got notification")
+            await send_message()
+            # notification_condition.wait()
+
+async def start_notification_thread():
     setup_event_notifications()
 
 def setup_event_notifications(): #Sets the next event as current_event, defaulting the timer
-    global current_event, timer
+    global current_event, timer, notified
     current_event = ["", sys.maxsize, 0]
     temp = current_event.copy()
     all_users = users_col.find()
@@ -215,11 +268,15 @@ def setup_event_notifications(): #Sets the next event as current_event, defaulti
                 current_event = next_event
 
     #Defaults timer
-    if temp != current_event:
+    if temp != current_event and notified:
+        notified = False
         if timer != None:
             timer.cancel()
         increment = current_event[1] - int(time.time())
         if increment > 0:
+            # new_thread = threading.Thread(target=send_notification)
+            # new_thread.start()
+            
             timer = threading.Timer(increment, send_notification)
             timer.start()
     return
