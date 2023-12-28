@@ -35,6 +35,8 @@ def create_user(user):
         "session_cookie": None,
         "username": None,
         "password": None,
+        "number": None,
+        "name": None,
         "data": {
             "schedule": [],
             "joint_schedule": [],
@@ -57,6 +59,19 @@ def account_checker(user):
     # Check if {"name" : user} exists in the database
     if users_col.find_one({"id": user}) is None:
         create_user(user)
+
+def add_number(user, number):
+    users_col.find_one_and_update({"id": user}, {"$set": {"number": number}})
+
+def get_number(user):
+    return users(user)["number"]
+
+def add_name(user, name):
+    users_col.find_one_and_update({"id": user}, {"$set": {"name": name}})
+
+
+def get_name(user):
+    return users(user)["name"]
 
 def send_friend_request(user1, user2, user2_name):
     if user1 == user2:

@@ -73,7 +73,7 @@ def process_input(message, public, id_overwride = None):
         return_message = [user.add_password(author_id, message.content.split()[1]), True]
 
     elif command == "!help":
-        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule", "!schedule_meeting", "!deschedule_meeting", "!view_meetings"]
+        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule", "!schedule_meeting", "!deschedule_meeting", "!view_meetings", "add_number", "add_name"]
         return_message = ["Available commands:\n" + '\n'.join(commands), False]
 
     elif command == "!add_event":
@@ -211,7 +211,36 @@ def process_input(message, public, id_overwride = None):
             content = '\n'.join(formated_meetings)
             return_message = [title + '\n' + content, False]
 
+    elif command == "!add_number":
+        words = message.content.split()
+        error_message = "You have to input your student number. Ex.: !add_number <number>"
+        if len(words) < 2:
+            return_message = [error_message, False]
+        elif len(words) > 2:
+            return_message = [error_message, False]
+        else:
+            number = words[1]
+            try:
+                int_number = int(number)
+                user.add_number(author_id, int_number)
+                return_message = ["Number added", False]
+            except:
+                return_message = [error_message, False]
 
+        
+        pass
+
+    elif command == "!add_name":
+        words = message.content.split()
+        error_message = "You have to input your name. Ex.: !add_name <name>"
+        if len(words) < 2:
+            return_message = [error_message, False]
+        else:
+            name_words = words[1:]
+            name = ' '.join(name_words)
+            user.add_name(author_id, name)
+            return_message = ["Name added", False]
+            
     if return_message is not None:
         if not new_interaction:
             user.cancel_current_interaction(author_id)
