@@ -7,6 +7,7 @@ from client import client
 
 
 user.setup_data()
+user.setup_event_notifications()
 
 if __name__ == "__main__":
     my_token = os.getenv('TOKEN')

@@ -5,6 +5,9 @@ from events.interaction import Interaction
 from database.dbs.schema import *
 from datetime import datetime, timedelta
 from pymongo import MongoClient
+import threading
+import sys
+import time
 
 client = MongoClient('localhost', 27017)
 
@@ -148,7 +151,8 @@ def create_event(user, date_obj, name, hour , minute):
     else:
         event = [name, event_time.timestamp()]
         users_col.find_one_and_update({"id": user}, {"$push": {"data.events": event}})
-
+        update_events(user)
+        setup_event_notifications() 
         return "Event '" + name + "' at " + str(event_time.strftime('%d-%m-%Y %H:%M')) + " saved to your events. Do !events to check your future events"
 
 def delete_event(user, event):
@@ -159,6 +163,8 @@ def delete_event(user, event):
     del user_events[event]
 
     users_col.update_one({"id": user}, {"$set": {"data.events": user_events}})
+    update_events(user)
+    setup_event_notifications()
     return "Event " + event_name + " deleted"
 
 def get_events_list(user):
@@ -178,4 +184,40 @@ def update_events(user):
     for index, event_time in enumerate(user_events):
         if now >= event_time[1] + week:
             delete_event(user, index)
+    return
+
+current_event = ["", sys.maxsize, 0]
+timer = None
+
+def send_notification():
+    global current_event
+    print("Time to notificate " + str(current_event[2]) + " of event " + current_event[0])
+    current_event = ["", sys.maxsize, 0]
+    setup_event_notifications()
+
+def setup_event_notifications(): #Sets the next event as current_event, defaulting the timer
+    global current_event, timer
+    current_event = ["", sys.maxsize, 0]
+    temp = current_event.copy()
+    all_users = users_col.find()
+    for user in all_users:
+        next_event = None
+        user_event_data = users(user["id"])["data"]["events"]
+        for event in user_event_data:
+            if event[1] > int(time.time()):
+                next_event = event
+                next_event.append(user["id"]) #Nearest future event for this user
+                break
+        if next_event != None:
+            if next_event[1] < current_event[1]:
+                current_event = next_event
+
+    #Defaults timer
+    if temp != current_event:
+        if timer != None:
+            timer.cancel()
+        increment = current_event[1] - int(time.time())
+        if increment > 0:
+            timer = threading.Timer(increment, send_notification)
+            timer.start()
     return
