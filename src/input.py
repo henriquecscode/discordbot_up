@@ -1,5 +1,6 @@
 import user
 import user_schedule
+import user_office
 import slot_types
 from events.interaction import Interaction
 from database.database_api import api
@@ -73,7 +74,7 @@ def process_input(message, public, id_overwride = None):
         return_message = [user.add_password(author_id, message.content.split()[1]), True]
 
     elif command == "!help":
-        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule", "!schedule_meeting", "!deschedule_meeting", "!view_meetings", "add_number", "add_name"]
+        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule", "!schedule_meeting", "!deschedule_meeting", "!view_meetings", "!add_number", "!add_name", "!reserve_office", "!view_office_reservations", "!cancel_office"]
         return_message = ["Available commands:\n" + '\n'.join(commands), False]
 
     elif command == "!add_event":
@@ -227,9 +228,6 @@ def process_input(message, public, id_overwride = None):
             except:
                 return_message = [error_message, False]
 
-        
-        pass
-
     elif command == "!add_name":
         words = message.content.split()
         error_message = "You have to input your name. Ex.: !add_name <name>"
@@ -240,7 +238,43 @@ def process_input(message, public, id_overwride = None):
             name = ' '.join(name_words)
             user.add_name(author_id, name)
             return_message = ["Name added", False]
-            
+
+    elif command == "!reserve_office":
+        
+        benefficiary_id = user.get_number(author_id)
+        if benefficiary_id is None:
+            return_message = ["You have to input your student number. Ex.: !add_number <number>", False]
+        elif len(user_office.get_office_reservations(author_id)):
+            return_message = ["You already have an office request. More than one is currently not supported", False]
+        else:
+            user_office.add_reserve_office_interaction(author_id)
+            prompt = get_reserve_office_format_message("")
+            return_message = [prompt, False]
+            new_interaction = True
+    elif command == "!view_office_reservations":
+        reservations = user_office.get_office_reservations(author_id)
+        if len(reservations) == 0:
+            return_message = ["You have no office reservations", False]
+        else:
+            office_reservation_strings = [format_office_reservation(reservation) for reservation in reservations]
+            title = "Your office reservations:"
+            formated_output = format_output(title, content)
+            return_message = [formated_output, False]
+    elif command == "!cancel_office":
+        reservations = user_office.get_office_reservations(author_id)
+        if len(reservations) == 0:
+            return_message = ["You have no office reservations", False]
+        else:
+            office_reservation_strings = [format_office_reservation(reservation) for reservation in reservations]
+            title = "Your office reservations:"
+            options = office_reservation_strings
+            formated_output = format_output_with_cancel(title, options)
+            user_office.add_cancel_office_interaction(author_id, reservations)
+            return_message = [formated_output, False]
+            new_interaction = True
+
+        pass
+
     if return_message is not None:
         if not new_interaction:
             user.cancel_current_interaction(author_id)
@@ -310,6 +344,15 @@ def process_input(message, public, id_overwride = None):
 
         elif interaction == Interaction.DESCHEDULE_MEETING:
             return process_deschedule_meeting(author_id, public, command)
+        
+        elif interaction == Interaction.RESERVE_OFFICE :
+            return process_reserve_office(message, author_id, public, command)
+        
+        elif interaction == Interaction.CONFIRM_RESERVE_OFFICE:
+            return process_confirm_reserve_office(author_id, public, command)
+    
+        elif interaction == Interaction.CANCEL_OFFICE:
+            return process_cancel_office(author_id, public, command)
         
     else:
         if command == "!cancel":
@@ -1089,7 +1132,139 @@ def process_deschedule_meeting(author_id, public, command):
 
     title = "Descheduled meeting"
     return [title, False]
+
+def process_reserve_office(message, author_id, public, command):
+    option_chosen = get_option_chosen(command)
+
+    if option_chosen == 0:
+        user.cancel_current_interaction(author_id)
+        return ["Canceled", False]
+    
+    
+    content = message.content[1:]
+    content = content.split(";")
+    content = list(filter(lambda x: x != "", content))
+    content = list(map(str.strip, content)) # Check if this works
+
+    input_date = content[0]
+    input_time = content[1]
+    duration = content[2]
+
+    if not duration.isdigit():
+        return get_schedule_meeting_format_message("Duration must be number")
+    else:
+        duration = int(duration)
+
+    hours_minutes = get_hours_minutes_from_formated_time_input(input_time)
+    if hours_minutes is None:
+        return [get_schedule_meeting_format_message("Start time must be in the format HH:mm"), False]
+    
+    hours, minutes = hours_minutes
+
+    date = get_date(input_date)
+
+    if date is None:
+        return [get_schedule_meeting_format_message("Day must be in the format DD/MM/YYYY"), False]
+    
+    
+    full_date = date.replace(hour=hours, minute=minutes)
+    now_date = datetime.now()
+
+    if full_date < now_date:
+        return ["Date must be in the future", False]
+
+    if len(content) > 3:
+        motivation = content[3]
+    else:
+        motivation = ""
+
+    if len(content) > 4:
+        observation = content[4]
+    else:
+        observation = ""
+
+    # Get the best slot
+    decimal_hour = hours
+    if minutes < 30:
+        pass
+    else: # minutes >= 30:
+        decimal_hour += 0.5
+
+    decimal_duration_hours = duration // 60
+    decimal_duration_minutes = duration % 60
+    if decimal_duration_minutes == 0:
+        pass
+    elif decimal_duration_minutes <= 30:
+        decimal_duration_hours += 0.5
+    else:
+        decimal_duration_hours += 1
+
+    office_reservation = {
+        "date": date,
+        "start_time": decimal_hour,
+        "duration": decimal_duration_hours,
+        "motivation": motivation,
+        "observation": observation
+    }
+    user_office.add_confirm_reserve_office_interaction(author_id, office_reservation)
+
+    pretitle = "Office reservation " + format_office_reservation(office_reservation)
+    options = ["Change parameters", "Confirm"]
+    formated_output = format_output_with_cancel(pretitle, options)
+    return [formated_output, False]
            
+def process_confirm_reserve_office(author_id, public, command):
+    option_chosen = get_option_chosen(command)
+
+    if option_chosen == -1:
+        return ["Option not recognized", False]
+    
+    if option_chosen == 0:
+        user.cancel_current_interaction(author_id)
+        return ["Canceled", False]
+    
+    elif option_chosen == 1:
+        message = get_reserve_office_format_message()
+        user_office.add_reserve_office_interaction(author_id)
+        return [message, False]
+    elif option_chosen == 2:
+        office_reservation = user.get_current_interaction_data(author_id)
+        added, confirmation_message = user_office.add_office_reservation(author_id, office_reservation)
+
+        user.cancel_current_interaction(author_id)
+        if not added:
+            confirmation_message = "API error: " + confirmation_message
+        return [confirmation_message, False]
+
+    else:
+        return ["Option not recognized", False]
+    
+def process_cancel_office(author_id, public, command):
+    option_chosen = get_option_chosen(command)
+    
+    if option_chosen == -1:
+        return ["Option not recognized", False]
+    
+    if option_chosen == 0:
+        user.cancel_current_interaction(author_id)
+        return ["Canceled", False]
+    
+    data = user.get_current_interaction_data(author_id)
+
+    if option_chosen < 1 or option_chosen > len(data):
+        return ["Option not recognized", False]
+    
+    office_reservation = data[option_chosen-1]
+    removed, confirmation_message = user_office.cancel_office_reservation(author_id, office_reservation)
+
+
+    user.cancel_current_interaction(author_id)
+    if not removed:
+        confirmation_message = "API error: " + confirmation_message
+    return [confirmation_message, False]
+
+
+
 
 def get_option_chosen(command):
     option_chosen = command[1:].strip()
@@ -1152,7 +1327,7 @@ def format_date_date(date: datetime) -> str:
     date_string = date.strftime(format)
     return date_string
 
-def get_hours_minutes_from_formated_time_input(time_input: str) -> None | int:
+def get_hours_minutes_from_formated_time_input(time_input: str) -> None | Tuple[int, int]:
     pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
     if not (re.match(pattern,  time_input)):
         return None
@@ -1317,6 +1492,17 @@ def get_schedule_meeting_format_message(pretitle: str = "") -> str:
     message = pretitle + content + '\n' + cancel
     return message
 
+def get_reserve_office_format_message(pretitle: str = "") -> str:
+    content_items = ["dia (dd/MM/YYYY)", "hora (HH:mm)", "duration (minutos)"]
+    optional_content_items = ["motivation", "special request"]
+    content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items))
+    content += "; " + "; ".join(map (lambda x: f"[<{x}>]", optional_content_items))
+    cancel = "0: Cancel"
+    if pretitle != "":
+        pretitle += '\n'
+    message = pretitle + content + '\n' + cancel
+    return message
+
 
 def format_id(id):
     return f"<@{id}>"
@@ -1341,3 +1527,22 @@ def format_event_string(event: dict):
     name = event['name']
     time_string = format_absolute_time_slot_info(date, duration)
     return f"{name} on {time_string}"
+
+def format_office_reservation(office_reservation: dict):
+    date = office_reservation['date']
+    start_time = office_reservation['start_time'] #decimal hours
+    duration = office_reservation['duration'] #decimal hours
+    motivation = office_reservation['motivation']
+    observation = office_reservation['observation']
+
+    canonical_duration = duration * 60
+    hours = int(start_time)
+    minutes = int((start_time - hours) * 60)
+    date = date.replace(hour=hours, minute=minutes)
+    time_string = format_absolute_time_slot_info(date, canonical_duration)
+    office_string = f"{time_string}"
+    if motivation != "":
+        office_string += f" with motivation \"{motivation}\""
+    if observation != "":
+        office_string += f" with special request \"{observation}\""
+    return office_string

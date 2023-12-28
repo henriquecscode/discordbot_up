@@ -23,3 +23,7 @@ class Interaction(Enum):
     SCHEDULE_MEETING = "schedule_meeting"
     SCHEDULE_MEETING_RETRY_SCHEDULE = "schedule_meeting_retry_schedule"
     DESCHEDULE_MEETING = "deschedule_meeting"
+
+    RESERVE_OFFICE = "reserve_office"
+    CONFIRM_RESERVE_OFFICE = "confirm_reserve_office"
+    CANCEL_OFFICE = "cancel_office"

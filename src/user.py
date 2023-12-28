@@ -43,7 +43,8 @@ def create_user(user):
             "incoming_friend_invites": [],
             "friends": [],
             "events": [],
-            "ucs": []
+            "ucs": [],
+            "office_reservations": []
         },
     }
     users_col.insert_one(new_user)
@@ -68,7 +69,6 @@ def get_number(user):
 
 def add_name(user, name):
     users_col.find_one_and_update({"id": user}, {"$set": {"name": name}})
-
 
 def get_name(user):
     return users(user)["name"]
