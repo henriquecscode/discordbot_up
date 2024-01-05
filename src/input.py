@@ -455,7 +455,7 @@ def process_add_schedule(author_id: int, public, command):
     elif option_chosen == 4:
         title = "Adicionar horario manualmente"
         
-        content_items = ["descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+        content_items = ["descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 0 - 2ª - a 6 - domingo -)", "hora inicio (HH:mm)", "duracao (minutos)"]
         optional_content_items = ["local"]
             
         content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
@@ -830,7 +830,7 @@ def process_add_schedule_manually(message, author_id: int, public, command):
     content = message.content
     content = content[1:]
 
-    content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+    content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 0 - 2ª - a 6 - domingo -)", "hora inicio (HH:mm)", "duracao (minutos)"]
     optional_content_items = ["local"]    
 
     parameters = content.split(";")
@@ -838,7 +838,7 @@ def process_add_schedule_manually(message, author_id: int, public, command):
     # Remove empty strings
     parameters = list(filter(lambda x: x != "", parameters))
     data = parameters
-    # <faculdade>; <curso>; <cadeira>; <tipo de aula>; <dia (de 1 -domingo - a 7 - sabado -)>; <hora inicio>; <duracao>; [<local> -opcional]\nExemplo: FEUP MIEIC PLOG TP 2 14:00 2:00 B207
+    # <faculdade>; <curso>; <cadeira>; <tipo de aula>; <dia (de 0 - 2ª - a 6 - domingo -)>; <hora inicio>; <duracao>; [<local> -opcional]\nExemplo: FEUP MIEIC PLOG TP 2 14:00 2:00 B207
     if len(data) < len (content_items):
         return [get_wrong_format_message(f"Must have at least {len(content_items)} parameters"), False]
     if len(data) > len(content_items) + len(optional_content_items):
@@ -867,7 +867,7 @@ def process_add_schedule_manually(message, author_id: int, public, command):
         return [get_wrong_format_message("Start time must be in the format HH:mm"), False]
 
     if not (day >= 1 and day <= 7):
-        return [get_wrong_format_message("Day must be between 1 (domingo) and 7 (sabado)"), False]
+        return [get_wrong_format_message("Day must be between 0 (2ª) and 6 (domingo)"), False]
 
     data = {
         "institution": institution,
@@ -891,7 +891,7 @@ def process_confirm_add_class(author_id: int, public, command):
     if option_chosen == 0:
         title = "Adicionar horario manualmente"
         
-        content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
+        content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 0 - 2ª - a 6 - domingo -)", "hora inicio", "duracao"]
         optional_content_items = ["local"]
             
         content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
@@ -918,7 +918,7 @@ def process_confirm_add_class(author_id: int, public, command):
         pretitle = f"Added  {schedule_string}"
         title = "Adicionar horario manualmente"
         
-        content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio", "duracao"]
+        content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 0 - 2ª - a 6 - domingo -)", "hora inicio", "duracao"]
         optional_content_items = ["local"]
             
         content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
@@ -1289,9 +1289,9 @@ def format_output_with_cancel(title, options):
     return output
 
 def get_day_from_day_index(day_index: int) -> Tuple[str, str]:
-    days = ["Domingo", "2ª feira", "3ª feira", "4ª feira", "5ª feira", "6ª feira", "Sábado"]
-    gender = ["o", "a", "a", "a", "a", "a", "o"]
-    return days[day_index-1], gender[day_index-1]
+    days = ["2ª feira", "3ª feira", "4ª feira", "5ª feira", "6ª feira", "Sábado", "Domingo"]
+    gender = ["a", "a", "a", "a", "a", "o", "o"]
+    return days[day_index], gender[day_index]
 
 def format_time(start_time): # start_time in minutes of a day
     hours = int(start_time//60)
@@ -1396,7 +1396,7 @@ def format_api_joint_class (schedule: dict):
     return schedule_string
 
 def get_wrong_format_message(wrong_format_message = "Wrong format"):
-    content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 1 -domingo - a 7 - sabado -)", "hora inicio (HH:mm)", "duracao (minutos)"]
+    content_items = ["<descricao de instituicao (por exemplo: faculdade, curso, cadeira)", "aula", "tipo de aula", "dia (de 0 - 2ª - a 6 - domingo -)", "hora inicio (HH:mm)", "duracao (minutos)"]
     optional_content_items = ["local"]
     error_message = wrong_format_message
     content = f"Formato:! " + "; ".join(map (lambda x: f"<{x}>", content_items)) 
