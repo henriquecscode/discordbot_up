@@ -37,3 +37,4 @@ async def safe_send_message(channel, message):
         else:
             await channel.send(current_message)
             current_message = line + "\n"
+    await channel.send(current_message)
