@@ -47,7 +47,7 @@ class Database_API:
         return course_units_objects
     
     def _get_course_unit_schedules(self, course_unit_id):
-        return self.db.get_join_all_by_param('course_unit', 'schedule', 'id', 'id', Param(f"course_unit.{COURSE_UNIT_ID}", course_unit_id))
+        return self.db.get_join_all_by_param('course_unit', 'schedule', 'id', 'course_unit_id', Param(f"course_unit.{COURSE_UNIT_ID}", course_unit_id))
     
     def get_course_unit_schedules(self, course_unit_id) -> List[Schedule]:
         course_unit_schedules = self._get_course_unit_schedules(course_unit_id)
