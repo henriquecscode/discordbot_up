@@ -258,7 +258,7 @@ def process_input(message, public, id_overwride = None):
         else:
             office_reservation_strings = [format_office_reservation(reservation) for reservation in reservations]
             title = "Your office reservations:"
-            formated_output = format_output(title, content)
+            formated_output = format_unnumbered_output(title, office_reservation_strings)
             return_message = [formated_output, False]
     elif command == "!cancel_office":
         reservations = user_office.get_office_reservations(author_id)
