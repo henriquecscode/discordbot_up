@@ -2,7 +2,8 @@ import os
 from database.database import Database, Param
 from database.dbs.schema import *
 from typing import List, Tuple, Any
-
+from dotenv import load_dotenv
+load_dotenv()
 FACULTY_ID = 'acronym'
 COURSE_ID = 'id'
 COURSE_UNIT_ID = 'id'
