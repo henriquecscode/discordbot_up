@@ -142,7 +142,6 @@ def add_class(username, faculty: dict, course: dict, course_unit: dict, schedule
     del faculty['courses']
     del course['course_units']
     del course_unit['classes']
-    del course_unit['schedule']
     
     join_schedule_data_class = {
         "faculty": faculty,
