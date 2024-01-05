@@ -1274,6 +1274,10 @@ def get_option_chosen(command):
         return -1
     return option_chosen
 
+def format_unnumbered_output(title, options):
+    output = title + '\n' + '\n'.join(options)
+    return output
+
 def format_output(title, options):
     numbered_options = [f'{index+1}: {elm}' for index, elm in enumerate(options)] 
     output = title + '\n' + '\n'.join(numbered_options)
