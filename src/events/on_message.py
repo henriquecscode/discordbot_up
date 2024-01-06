@@ -1,8 +1,9 @@
 import discord
-from client import client
+from client import get_client
 import input
 
 PREFIX = '!'
+client = get_client()
 @client.event
 async def on_message(message):
     if message.author == client.user:

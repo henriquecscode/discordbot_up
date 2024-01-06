@@ -6,6 +6,10 @@ from database.dbs.schema import *
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from slot_types import  EVENT
+import threading
+import sys
+import time
+from notification import send_dm
 
 client = MongoClient('localhost', 27017)
 
@@ -180,6 +184,8 @@ def create_event(user, date_obj, name, hour , minute):
 
         users_col.find_one_and_update({"id": user}, {"$push": {"data.joint_schedule": event_object}})
 
+        update_events(user)
+        setup_event_notifications() 
         return "Event '" + name + "' at " + str(event_time.strftime('%d-%m-%Y %H:%M')) + " saved to your events. Do !events to check your future events"
 
 def delete_event(user, event):
@@ -190,9 +196,8 @@ def delete_event(user, event):
     del user_events[event]
 
     users_col.update_one({"id": user}, {"$set": {"data.events": user_events}})
-
-    # delete from joint schedule
-    users_col.update_many({"id": user}, {"$pull": {"data.joint_schedule": {"type": EVENT, "class.name": event_name}}})
+    update_events(user)
+    setup_event_notifications()
     return "Event " + event_name + " deleted"
 
 def get_events_list(user):
@@ -212,4 +217,79 @@ def update_events(user):
     for index, event_time in enumerate(user_events):
         if now >= event_time[1] + week:
             delete_event(user, index)
+    return
+
+current_event = [["", sys.maxsize, 0]]
+timer = None
+import threading
+import asyncio
+from client import get_client
+next_event = []
+notification_condition = threading.Condition()
+notification_thread = None
+notified = True
+
+
+def send_notification():
+    global current_event
+    for event in current_event:
+        message = "Event " + event[0] + " is now!"
+        user_id = event[2]
+        next_event.append([user_id, message])
+        notification_condition.acquire()
+        notification_condition.notify()
+        notification_condition.release()
+    current_event = [["", sys.maxsize, 0]]
+    setup_event_notifications()
+
+async def send_message():
+    global next_event
+    event = next_event[0]
+    user_id, message = event[0], event[1]
+    next_event = next_event[1:]
+    user = await get_client().fetch_user(user_id)
+    await user.send(message)
+    return None
+
+async def notification_loop():
+    global next_event, notification_thread
+    while True:
+        if len(next_event) == 0:
+            await asyncio.sleep(1)
+            continue
+        else:
+            await send_message()
+
+def setup_event_notifications(): #Sets the next event as current_event, defaulting the timer
+    global current_event, timer, notified
+    current_event = [["", sys.maxsize, 0]]
+    temp = current_event.copy()
+    all_users = users_col.find()
+    for user in all_users:
+        next_event = None
+        events = []
+        user_event_data = users(user["id"])["data"]["events"]
+        for event in user_event_data:
+            if event[1] > int(time.time()):
+                next_event = event
+                next_event.append(user["id"]) #Nearest future event for this user
+                if len(events) > 0:
+                    if events[0][1] < next_event[1]:
+                        break
+                events.append(next_event)
+        if len(events) != 0:
+            if events[0][1] < current_event[0][1]:
+                current_event = events
+            elif events[0][1] == current_event[0][1]:
+                current_event = current_event + events
+
+    #Defaults timer
+    if temp != current_event and notified:
+        notified = False
+        if timer != None:
+            timer.cancel()
+        increment = current_event[0][1] - int(time.time())
+        if increment > 0:        
+            timer = threading.Timer(increment, send_notification)
+            timer.start()
     return
