@@ -53,7 +53,7 @@ Formato:! <descricao de instituicao (por exemplo: faculdade, curso, cadeira)>; <
 
 \>
 ```
-! FEUP MEIC; Seminars; Auditorio pequeno; 5; 17:00; 180; B017
+! FEUP MEIC; Seminars; Auditorio pequeno; 3; 17:00; 180; B017
 ```
 
 \<
@@ -106,7 +106,7 @@ Formato:! <descricao de instituicao (por exemplo: faculdade, curso, cadeira)>; <
 
 \>
 ```
-! FEUP MEIC; Seminars; Auditorio pequeno; 5; 17:00; 180; B017
+! FEUP MEIC; Seminars; Auditorio pequeno; 3; 17:00; 180; B017
 ```
 
 \<
