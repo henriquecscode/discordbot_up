@@ -80,40 +80,49 @@ def get_name(user):
 def send_friend_request(user1, user1name, user2, user2_name):
     if user1 == user2:
         return "You can't friend request yourself"
-    if user2 in users(user1)["data"]["friends"]:
-        return f"{user2} is already on your friends list"
-    
-    if user1 in users(user2)["data"]["incoming_friend_invites"]:     
+    friends = users(user1)["data"]["friends"]
+    incoming = users(user2)["data"]["incoming_friend_invites"]
+
+    if any(user2_name in sublist[0] for sublist in friends):
+        return f"{user2_name} is already on your friends list"
+
+    if any(user1name in sublist[0] for sublist in incoming):
         return f"You already sent a friend request to {user2_name}"
-    
-    users_col.find_one_and_update({"id": user2}, {"$push": {"data.incoming_friend_invites": user1name}})
+
+    user = [user1name, user1]
+    users_col.find_one_and_update({"id": user2}, {"$push": {"data.incoming_friend_invites": user}})
     return f"Friend request sent to {user2_name}"
 
 def check_friend_requests(user):
     if len(users(user)["data"]["incoming_friend_invites"]) == 0:
         return "You have no incoming friend requests!"
-    return "\n".join([f"{index}. {name}" for index, name in enumerate(users(user)["data"]["incoming_friend_invites"], start=1)])
+    return "\n".join([f"{index}. {name[0]}" for index, name in enumerate(users(user)["data"]["incoming_friend_invites"], start=1)])
 
-def accept_friend_request(user, index):
-    if len(users(user)["data"]["incoming_friend_invites"]) == 0:
+def accept_friend_request(user_id, user_name, index):
+    if len(users(user_id)["data"]["incoming_friend_invites"]) == 0:
         return "You have no incoming friend requests!"
-    if index > len(users(user)["data"]["incoming_friend_invites"]):
-        return f"Friend request not found, you only have {len(users(user)['data']['incoming_friend_invites'])} friend requests!"
+    if index > len(users(user_id)["data"]["incoming_friend_invites"]):
+        return f"Friend request not found, you only have {len(users(user_id)['data']['incoming_friend_invites'])} friend requests!"
     
-    user2 = users(user)["data"]["incoming_friend_invites"][index - 1]
-    users_col.update_one({"id": user}, {"$push": {"data.friends": user2}, "$pull": {"data.incoming_friend_invites": index - 1}})
+    user2 = users(user_id)["data"]["incoming_friend_invites"][index - 1]
+    user1 = [user_name, user_id]
+    user2_name = user2[0]
+    user2_id = user2[1]
 
-    return f"Friend request from {user2} accepted!"
+    print(index)
+    users_col.update_one({"id": user_id}, {"$push": {"data.friends": user2}, "$pull": {"data.incoming_friend_invites": index - 1}})
+    users_col.update_one({"id": user2_id}, {"$push": {"data.friends": user1}})
+    return f"Friend request from {user2_name} accepted!"
 
 def remove_friend(user1, user2, user2_name):
     user1_friends = users(user1)["data"]["friends"]
-    if user2 not in user1_friends:
-        return f"{user2} is not on your friends list"
+    if not any(user2 in sublist[1] for sublist in user1_friends):
+        return f"{user2_name} is not on your friends list"
     
     user2_friends = users(user2)["data"]["friends"]
 
-    user1_friends.remove(user2)
-    user2_friends.remove(user1)
+    user1_friends = [sublist for sublist in user1_friends if sublist[1] != user2]
+    user2_friends = [sublist for sublist in user2_friends if sublist[1] != user1]
 
     users_col.update_one({"id": user1}, {"$set": {"data.friends": user1_friends}})
     users_col.update_one({"id": user2}, {"$set": {"data.friends": user2_friends}})
@@ -123,7 +132,8 @@ def remove_friend(user1, user2, user2_name):
 def show_friends_list(user):
     if len(users(user)["data"]["friends"]) == 0:
         return "You have no friends :("
-    return "\n".join(map(str, users(user)["data"]["friends"]))
+    list = users(user)["data"]["friends"]
+    return "\n".join(str(sublist[0]) for sublist in list)
 
 def add_cookie(user, cookie):
     users_col.update_one({"id": user}, {"$set": {"session_cookie": cookie}})
@@ -293,3 +303,10 @@ def setup_event_notifications(): #Sets the next event as current_event, defaulti
             timer = threading.Timer(increment, send_notification)
             timer.start()
     return
+
+def are_friends(user_id, user2_name):
+    user_friends = users(user_id)["data"]["friends"]
+    for friend in user_friends:
+        if friend[0] == user2_name:
+            return True
+    return False

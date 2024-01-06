@@ -6,4 +6,4 @@ client = get_client()
 async def on_ready():
     print(f'We have logged in as {client.user}')
     client.loop.create_task(notification_loop())
-    setup_event_notifications
+    setup_event_notifications()

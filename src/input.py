@@ -59,7 +59,7 @@ def process_input(message, public, id_overwride = None):
     elif command == "!accept":
         if len(message.content.split()) < 2:
             return_message = ["You have to specify which friend request to accept. Ex.: !accept 1", False]
-        return_message = [user.accept_friend_request(author_id, int(message.content.split()[1])), False]
+        return_message = [user.accept_friend_request(author_id, message.author.name, int(message.content.split()[1])), False]
     
     elif command == "!remove_friend":
         if len(message.content.split()) < 2:
@@ -149,7 +149,15 @@ def process_input(message, public, id_overwride = None):
         return_message = [formated_output, False]
 
     elif command == "!view_schedule":
-        return_message = process_view_schedule(author_id)
+        if len(message.content.split()) == 1:
+            return_message = process_view_schedule(author_id)
+        else:
+            user2_id = message.mentions[0].id
+            user2_name = message.mentions[0].name
+            if user.are_friends(author_id, user2_name):
+                return_message = process_view_schedule(user2_id)
+            else:
+                return_message = ["In order to view " + user2_name + "'s schedule, you need to be friends", False]
 
     elif command == "!_author":
         if author_id not in AUTHOR_IDS:
