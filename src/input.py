@@ -48,7 +48,7 @@ def process_input(message, public, id_overwride = None):
         if len(message.mentions) != 1:
             return_message = ["You have to mention which friend you would like to add. Ex.: !add_friend @someone", False]
         else:
-            return_message = [user.send_friend_request(message.author.id, message.mentions[0].id, message.mentions[0].name), False]
+            return_message = [user.send_friend_request(author_id, message.mentions[0].id, message.mentions[0].name), False]
 
     elif command == "!friend_requests":
         return_message = [user.check_friend_requests(author_id), False]
@@ -64,7 +64,7 @@ def process_input(message, public, id_overwride = None):
         if len(message.mentions) != 1:
             return_message = ["You have to mention which friend you would like to remove. Ex.: !remove_friend @someone", False]
         
-        return_message = [user.remove_friend(message.author.id, message.mentions[0].id, message.mentions[0].name), False]
+        return_message = [user.remove_friend(author_id, message.mentions[0].id, message.mentions[0].name), False]
     
     elif command == "!friends_list":
         return_message = [user.show_friends_list(author_id), False]

@@ -77,13 +77,13 @@ def send_friend_request(user1, user2, user2_name):
     if user1 == user2:
         return "You can't friend request yourself"
     if user2 in users(user1)["data"]["friends"]:
-        return user2 + " is already on your friends list"
+        return f"{user2} is already on your friends list"
     
     if user1 in users(user2)["data"]["incoming_friend_invites"]:     
-        return "You already sent a friend request to " + user2_name
+        return f"You already sent a friend request to {user2_name}"
     
     users_col.find_one_and_update({"id": user2}, {"$push": {"data.incoming_friend_invites": user1}})
-    return "Friend request sent to " + user2_name
+    return f"Friend request sent to {user2_name}"
 
 def check_friend_requests(user):
     if len(users(user)["data"]["incoming_friend_invites"]) == 0:
@@ -94,18 +94,18 @@ def accept_friend_request(user, index):
     if len(users(user)["data"]["incoming_friend_invites"]) == 0:
         return "You have no incoming friend requests!"
     if index > len(users(user)["data"]["incoming_friend_invites"]):
-        return "Friend request not found, you only have " + len(users(user)["data"]["incoming_friend_invites"]) + " friend requests!"
+        return f"Friend request not found, you only have {len(users(user)['data']['incoming_friend_invites'])} friend requests!"
     
     user2 = users(user)["data"]["incoming_friend_invites"][index - 1]
     users_col.update_one({"id": user}, {"$push": {"data.friends": user2}, "$pop": {"data.incoming_friend_invites": index - 1}})
     users_col.update_one({"id": user2}, {"$push": {"data.friends": user}})
 
-    return "Friend request from " + user2 + " accepted!"
+    return f"Friend request from {user2} accepted!"
 
 def remove_friend(user1, user2, user2_name):
     user1_friends = users(user1)["data"]["friends"]
     if user2 not in user1_friends:
-        return user2 + " is not on your friends list"
+        return f"{user2} is not on your friends list"
     
     user2_friends = users(user2)["data"]["friends"]
 
@@ -115,7 +115,7 @@ def remove_friend(user1, user2, user2_name):
     users_col.update_one({"id": user1}, {"$set": {"data.friends": user1_friends}})
     users_col.update_one({"id": user2}, {"$set": {"data.friends": user2_friends}})
 
-    return user2_name + " has been removed from your friends list"
+    return f"{user2_name} has been removed from your friends list"
 
 def show_friends_list(user):
     if len(users(user)["data"]["friends"]) == 0:
