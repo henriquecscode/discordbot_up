@@ -15,14 +15,17 @@ load_dotenv()
 
 def get_author_ids():
     author_ids_variable = os.getenv("AUTHOR_IDS")
-    author_ids_variable = author_ids_variable.strip()
-    if author_ids_variable == "":
+    if author_ids_variable is None:
         ids = []
     else:
-        try:
-            ids = list(map(int, author_ids_variable.split(' ')))
-        except:
+        author_ids_variable = author_ids_variable.strip()
+        if author_ids_variable == "":
             ids = []
+        else:
+            try:
+                ids = list(map(int, author_ids_variable.split(' ')))
+            except:
+                ids = []
     return ids
 
 AUTHOR_IDS = get_author_ids()
