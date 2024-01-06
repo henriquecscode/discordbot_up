@@ -73,7 +73,7 @@ def add_name(user, name):
 def get_name(user):
     return users(user)["name"]
 
-def send_friend_request(user1, user2, user2_name):
+def send_friend_request(user1, user1name, user2, user2_name):
     if user1 == user2:
         return "You can't friend request yourself"
     if user2 in users(user1)["data"]["friends"]:
@@ -82,7 +82,7 @@ def send_friend_request(user1, user2, user2_name):
     if user1 in users(user2)["data"]["incoming_friend_invites"]:     
         return f"You already sent a friend request to {user2_name}"
     
-    users_col.find_one_and_update({"id": user2}, {"$push": {"data.incoming_friend_invites": user1}})
+    users_col.find_one_and_update({"id": user2}, {"$push": {"data.incoming_friend_invites": user1name}})
     return f"Friend request sent to {user2_name}"
 
 def check_friend_requests(user):
@@ -97,8 +97,7 @@ def accept_friend_request(user, index):
         return f"Friend request not found, you only have {len(users(user)['data']['incoming_friend_invites'])} friend requests!"
     
     user2 = users(user)["data"]["incoming_friend_invites"][index - 1]
-    users_col.update_one({"id": user}, {"$push": {"data.friends": user2}, "$pop": {"data.incoming_friend_invites": index - 1}})
-    users_col.update_one({"id": user2}, {"$push": {"data.friends": user}})
+    users_col.update_one({"id": user}, {"$push": {"data.friends": user2}, "$pull": {"data.incoming_friend_invites": index - 1}})
 
     return f"Friend request from {user2} accepted!"
 
