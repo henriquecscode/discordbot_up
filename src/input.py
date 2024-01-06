@@ -78,7 +78,8 @@ def process_input(message, public, id_overwride = None):
             return_message = ["This is sensitive private information! Please only use this command on private DM's!", True]
         if len(message.content.split()) < 2:
                 return_message = ["You have to input your username. Ex.: !add_username <username>", False]
-        return_message = [user.add_username(author_id, message.content.split()[1]), True]
+        else:
+            return_message = [user.add_username(author_id, message.content.split()[1]), True]
 
     elif command == "!add_password":
         if public:
