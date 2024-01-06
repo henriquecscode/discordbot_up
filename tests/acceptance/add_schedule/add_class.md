@@ -22,7 +22,7 @@ Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 \<
 ```
 Adicionar aula a 50154C5: Sistemas Construtivos Tradicionais
-1: 1MEEC_E02(T): 2ª feira 12:00-13:30 in B019
+1: MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
 0: Cancel
 ```
 
@@ -50,7 +50,7 @@ First
 \<
 ```
 Adicionar aula a 50154C5: Sistemas Construtivos Tradicionais
-1: 1MEEC_E02(T): 2ª feira 12:00-13:30 in B019
+1: MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
 0: Cancel
 ```
 
@@ -61,7 +61,7 @@ Adicionar aula a 50154C5: Sistemas Construtivos Tradicionais
 
 \<
 ```
-Added 1MEEC_E02: T
+Added MIA-1S-SCT: TP
 
 Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 1: Adicionar aula
@@ -80,7 +80,7 @@ Second
 \<
 ```
 Adicionar aula a 50154C5: Sistemas Construtivos Tradicionais
-1: 1MEEC_E02(T): 2ª feira 12:00-13:30 in B019
+1: MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
 0: Cancel
 ```
 
@@ -91,7 +91,7 @@ Adicionar aula a 50154C5: Sistemas Construtivos Tradicionais
 
 \<
 ```
-You already added 1MEEC_E02: T
+You already added MIA-1S-SCT: TP
 
 Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 1: Adicionar aula
@@ -108,7 +108,7 @@ Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 \<
 ```
 Adicionar aula a 50154C5: Sistemas Construtivos Tradicionais
-1: 1MEEC_E02(T): 2ª feira 12:00-13:30 in B019
+1: MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
 0: Cancel
 ```
 
@@ -165,7 +165,7 @@ Prerequisites
 \<
 ```
 Horarios de aula de 50154C5: Sistemas Construtivos Tradicionais
-1: 1MEEC_E02(T): 2ª feira 12:00-13:30 in B019
+MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
 0: Cancel
 ```
 
@@ -193,8 +193,8 @@ Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 \<
 ```
 Escolher aula de Mestrado Integrado em Arquitetura para editar horario
-1: Sistemas Construtivos Tradicionais: 4 year;  1 Semester
-2: Sistemas Construtivos Tradicionais: 5 year;  1 Semester
+1: MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
+
 0: Cancel
 ```
 
@@ -250,7 +250,7 @@ Prerequisites
 \<
 ```
 Remover aula de 50154C5: Sistemas Construtivos Tradicionais
-1: 1MEEC_E02(T): 2ª feira 12:00-13:30 in B019
+1: MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
 0: Cancel
 ```
 
@@ -276,7 +276,7 @@ Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 \<
 ```
 Remover aula de 50154C5: Sistemas Construtivos Tradicionais
-1: 1MEEC_E02(T): 2ª feira 12:00-13:30 in B019
+1: MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
 0: Cancel
 ```
 
@@ -286,7 +286,7 @@ Remover aula de 50154C5: Sistemas Construtivos Tradicionais
 ```
 \<
 ```
-Removed 1MEEC_E02: T
+Removed MIA-1S-SCT: TP
 
 Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 1: Adicionar aula
@@ -303,7 +303,7 @@ Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 \<
 ```
 Remover aula de 50154C5: Sistemas Construtivos Tradicionais
-1: 1MEEC_E02(T): 2ª feira 12:00-13:30 in B019
+1: MIA-1S-SCT(TP): 2ª feira 16:30-18:00 in PCR1A
 0: Cancel
 ```
 

@@ -12,8 +12,6 @@ Escolheste o curso MIARQ: Mestrado Integrado em Arquitetura
 # Tests
 ## Adicionar cadeira
 
-### Adicionar cadeira cancelar
-
 ### Adicionar cadeira escolher
 First
 \>
@@ -162,7 +160,6 @@ Prerequisites
 ```
 Escolher cadeira de Mestrado Integrado em Arquitetura para editar horario
 1: Sistemas Construtivos Tradicionais: 4 year;  1 Semester
-2: Sistemas Construtivos Tradicionais: 5 year;  1 Semester
 0: Cancel
 ```
 
@@ -190,7 +187,6 @@ Escolheste o curso MIARQ: Mestrado Integrado em Arquitetura
 ```
 Escolher cadeira de Mestrado Integrado em Arquitetura para editar horario
 1: Sistemas Construtivos Tradicionais: 4 year;  1 Semester
-2: Sistemas Construtivos Tradicionais: 5 year;  1 Semester
 0: Cancel
 ```
 
@@ -218,7 +214,6 @@ Escolheste a cadeira 50154C5: Sistemas Construtivos Tradicionais
 ```
 Escolher cadeira de Mestrado Integrado em Arquitetura para editar horario
 1: Sistemas Construtivos Tradicionais: 4 year;  1 Semester
-2: Sistemas Construtivos Tradicionais: 5 year;  1 Semester
 0: Cancel
 ```
 

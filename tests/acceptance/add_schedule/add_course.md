@@ -12,8 +12,6 @@ Escolheste a faculdade faup: Faculdade de Arquitetura
 # Tests
 ## Adicionar curso
 
-### Adicionar curso cancelar
-
 ### Adicionar curso escolher
 First
 \>
@@ -119,9 +117,7 @@ Cursos disponiveis em faup: Faculdade de Arquitetura
 ```
 Option not recognized
 ```
-```
 ## Editar curso
-
 
 ### Editar curso vazio
 \> 

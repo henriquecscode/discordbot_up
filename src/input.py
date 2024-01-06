@@ -720,18 +720,23 @@ def process_manage_course_unit_classes(author_id: int, public, command):
         formated_output = format_output_with_cancel(title, options)
         user_schedule.add_choose_class_to_add_interaction(author_id, faculty, course, course_unit, classes_)
         return [formated_output, False]
-    elif option_chosen == 2 or option_chosen == 3:
+    elif option_chosen == 2:
         classes_: List[dict] = user_schedule.get_course_unit_classes(author_id, faculty, course, course_unit)
 
         options = [f"{class_['name']}({class_['lesson_type']}): {get_day_from_day_index(class_['day'])[0]} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}" for class_ in classes_]
-        if option_chosen == 2:
-            title = f"Horarios de aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
-            user_schedule.add_choose_class_to_view_interaction(author_id, faculty, course, course_unit, classes_)
-        elif option_chosen == 3:
-            title = f"Remover aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
-            user_schedule.add_choose_class_to_remove_interaction(author_id, faculty, course, course_unit, classes_)
+        title = f"Horarios de aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
+        user_schedule.add_choose_class_to_view_interaction(author_id, faculty, course, course_unit, classes_)
+        formated_output = format_unnumbered_output_with_cancel(title, options)
+        return [formated_output, False]
+    elif option_chosen == 3:
+        classes_: List[dict] = user_schedule.get_course_unit_classes(author_id, faculty, course, course_unit)
+
+        options = [f"{class_['name']}({class_['lesson_type']}): {get_day_from_day_index(class_['day'])[0]} {format_time(class_['start_time'])}-{format_time(class_['start_time'] + class_['duration'])} in {class_['location']}" for class_ in classes_]
+        title = f"Remover aula de {course_unit['acronym']}: {course_unit['name'].strip()}"
+        user_schedule.add_choose_class_to_remove_interaction(author_id, faculty, course, course_unit, classes_)
         formated_output = format_output_with_cancel(title, options)
         return [formated_output, False]
+
     elif option_chosen == 0:
         title = f"Escolheste o curso {course['acronym']}: {course['name'].strip()}"
         options = ["Adicionar cadeira", "Editar horario de cadeira"]
@@ -1281,6 +1286,11 @@ def format_unnumbered_output(title, options):
 def format_output(title, options):
     numbered_options = [f'{index+1}: {elm}' for index, elm in enumerate(options)] 
     output = title + '\n' + '\n'.join(numbered_options)
+    return output
+
+def format_unnumbered_output_with_cancel(title, options):
+    unnumbered_options = '\n'.join(options)
+    output = title + '\n' + unnumbered_options + '\n' + "0: Cancel"
     return output
 
 def format_output_with_cancel(title, options):
