@@ -8,8 +8,25 @@ from typing import List, Tuple
 from database.dbs.schema import *
 from datetime import datetime, timedelta
 import re
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
-AUTHOR_IDS = [211486403874258944, 237236210823593984]
+
+def get_author_ids():
+    author_ids_variable = os.getenv("AUTHOR_IDS")
+    author_ids_variable = author_ids_variable.strip()
+    if author_ids_variable == "":
+        ids = []
+    else:
+        try:
+            ids = list(map(int, author_ids_variable.split(' ')))
+        except:
+            ids = []
+    return ids
+
+AUTHOR_IDS = get_author_ids()
+
 
 def process_input(message, public, id_overwride = None):
     #Create an account for the author of the message and all those mentioned, podemos ter de mudar quando formos buscar dados ao sigarra

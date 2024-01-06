@@ -23,6 +23,7 @@ TOKEN=<discord token provided by discord.com>
 USER=<personal sigarra up>
 PASSWORD<person siggara pwd>
 DB_PATH=<path to the schedules database>
+AUTHOR_IDS=<space separated list with discord ids of the developers (to allow testing of !_author functions)>
 ```
 
 ## Mongo
