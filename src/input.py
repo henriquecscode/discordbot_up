@@ -990,13 +990,13 @@ def process_schedule_meeting(message, author_id: int, public, command):
     content = list(map(str.strip, content)) # Check if this works
 
     if len(content) != 3:
-        return get_schedule_meeting_format_message("Must have 3 parameters")
+        return [get_schedule_meeting_format_message("Must have 3 parameters"), False]
     input_date = content[0]
     input_time = content[1]
     duration = content[2]
 
     if not duration.isdigit():
-        return get_schedule_meeting_format_message("Duration must be number")
+        return [get_schedule_meeting_format_message("Duration must be number"), False]
     else:
         duration = int(duration)
 
@@ -1013,7 +1013,7 @@ def process_schedule_meeting(message, author_id: int, public, command):
         return [get_schedule_meeting_format_message("Day must be in the format DD/MM/YYYY"), False]
     
     date = date.replace(hour=hours, minute=minutes)
-    input_day = ( date.weekday()+1 ) % 7
+    input_day = ( date.weekday() ) % 7
     # Reply
     meeting_slot = user_schedule.get_slot_from_time_info(input_day, start_time, duration)
     to_meet_usernames = user.get_current_interaction_data(author_id)
@@ -1127,7 +1127,7 @@ def process_schedule_meeting_retry_schedule(author_id: int, public, command):
         added = user_schedule.add_meeting(author_id, to_meet_usernames, date,  duration)
         meeting_string = format_meeting_string(data)
         if added:
-            message_string = f"Meeting scheduled {meeting_string}"
+            message_string = f"Meeting scheduled on your calendar {meeting_string}"
             user.cancel_current_interaction(author_id)
         else:
             message_string = f"That meeting on {meeting_string} is already scheduled"
@@ -1176,7 +1176,7 @@ def process_reserve_office(message, author_id, public, command):
     duration = content[2]
 
     if not duration.isdigit():
-        return get_schedule_meeting_format_message("Duration must be number")
+        return [get_schedule_meeting_format_message("Duration must be number"), False]
     else:
         duration = int(duration)
 
