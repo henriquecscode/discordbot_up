@@ -10,12 +10,13 @@ Add schedule
 1: Adicionar faculdade
 2: Escolher faculdade para editar horario
 3: Editar horario de curso
+4: Adicionar manualmente
+5: Remover horario manual
 0: Cancel
 ```
 # Tests
 
 ## Adicionar faculdade
-### Adicionar faculdade cancelar
 ### Adicionar faculdade escolher
 First  
 \>
@@ -41,6 +42,8 @@ Add schedule
 1: Adicionar faculdade
 2: Escolher faculdade para editar horario
 3: Editar horario de curso
+4: Adicionar manualmente
+5: Remover horario manual
 0: Cancel
 ```
 
@@ -68,6 +71,8 @@ Add schedule
 1: Adicionar faculdade
 2: Escolher faculdade para editar horario
 3: Editar horario de curso
+4: Adicionar manualmente
+5: Remover horario manual
 0: Cancel
 ```
 
@@ -95,6 +100,8 @@ Add schedule
 1: Adicionar faculdade
 2: Escolher faculdade para editar horario
 3: Editar horario de curso
+4: Adicionar manualmente
+5: Remover horario manual
 0: Cancel
 ```
 ### Adicionar faculdade erro
@@ -116,7 +123,6 @@ Faculdades disponiveis
 \<
 ```
 Option not recognized
-```
 ```
 ## Editar faculdade
 
