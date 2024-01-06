@@ -135,10 +135,6 @@ def show_friends_list(user):
     list = users(user)["data"]["friends"]
     return "\n".join(str(sublist[0]) for sublist in list)
 
-def add_cookie(user, cookie):
-    users_col.update_one({"id": user}, {"$set": {"session_cookie": cookie}})
-    return "Session cookie saved"
-
 def add_username(user, username):
     pattern = r'^up\d{9}(@up.pt)?(@fe.up.pt)?$'
     if re.match(pattern, username):
