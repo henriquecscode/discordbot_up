@@ -109,14 +109,13 @@ def accept_friend_request(user_id, user_name, index):
     user2_name = user2[0]
     user2_id = user2[1]
 
-    print(index)
     users_col.update_one({"id": user_id}, {"$push": {"data.friends": user2}, "$pull": {"data.incoming_friend_invites": index - 1}})
     users_col.update_one({"id": user2_id}, {"$push": {"data.friends": user1}})
     return f"Friend request from {user2_name} accepted!"
 
 def remove_friend(user1, user2, user2_name):
     user1_friends = users(user1)["data"]["friends"]
-    if not any(user2 in sublist[1] for sublist in user1_friends):
+    if any(user2 == sublist[1] for sublist in user1_friends) == False:
         return f"{user2_name} is not on your friends list"
     
     user2_friends = users(user2)["data"]["friends"]
