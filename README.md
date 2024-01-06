@@ -46,4 +46,9 @@ The databased used is called `up` and thehe collection used is named `users`. Se
 
 Make sure you have followed the steps above
 
-From the root folder, run `python src/main.py` to start the bot
+From the root folder, run 
+```
+cd src
+python main.py
+```
+ to start the bot
