@@ -1,7 +1,7 @@
 import user
 from events.interaction import Interaction
-from src.services.office import get_office, cancel_office
-from src.services.session import get_session
+from services.office import get_office, cancel_office
+from services.session import get_session
 from typing import Dict, List
 
 

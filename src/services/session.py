@@ -1,6 +1,6 @@
 import requests
-from src.services.utils.faculties import Faculty
-from src.services.urls import get_base_url
+from services.utils.faculties import Faculty
+from services.urls import get_base_url
 import os
 
 session = None
