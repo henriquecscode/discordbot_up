@@ -125,10 +125,6 @@ def show_friends_list(user):
         return "You have no friends :("
     return "\n".join(map(str, users(user)["data"]["friends"]))
 
-def add_cookie(user, cookie):
-    users_col.update_one({"id": user}, {"$set": {"session_cookie": cookie}})
-    return "Session cookie saved"
-
 def add_username(user, username):
     pattern = r'^up\d{9}(@up.pt)?(@fe.up.pt)?$'
     if re.match(pattern, username):

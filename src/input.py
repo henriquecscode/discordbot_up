@@ -71,13 +71,7 @@ def process_input(message, public, id_overwride = None):
     
     elif command == "!friends_list":
         return_message = [user.show_friends_list(author_id), False]
-    
-    elif command == "!add_session_cookie":
-        if public:
-            return_message = ["This is sensitive private information! Please only use this command on private DM's!", True]
-        if len(message.content.split()) < 2:
-            return_message = ["You have to input your session cookie. Ex.: !add_session_cookie <cookie>", False]
-        return_message = [user.add_cookie(author_id, int(message.content.split()[1])), True]
+
     
     elif command == "!add_username":
         if public:
@@ -94,7 +88,7 @@ def process_input(message, public, id_overwride = None):
         return_message = [user.add_password(author_id, message.content.split()[1]), True]
 
     elif command == "!help":
-        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_session_cookie", "!add_event", "!events", "!add_schedule", "!view_schedule", "!schedule_meeting", "!deschedule_meeting", "!view_meetings", "!add_number", "!add_name", "!reserve_office", "!view_office_reservations", "!cancel_office"]
+        commands = ["!add_friend", "!friend_requests", "!accept", "!friends_list", "!remove_friend", "!add_event", "!events", "!add_schedule", "!view_schedule", "!schedule_meeting", "!deschedule_meeting", "!view_meetings", "!add_number", "!add_name", "!reserve_office", "!view_office_reservations", "!cancel_office"]
         return_message = ["Available commands:\n" + '\n'.join(commands), False]
 
     elif command == "!add_event":
